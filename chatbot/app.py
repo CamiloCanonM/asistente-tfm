@@ -7,93 +7,85 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage, HumanMessage
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- CONFIGURACIÓN ---
 st.set_page_config(page_icon="🥈", page_title="Asistente Silver Economy")
 
-# --- 🛑 INTERRUPTOR DE APAGADO (CONTROL DE GASTOS) 🛑 ---
-# Si en la nube configuramos esto como "false", la app se bloquea y no gasta dinero.
-estado_chat = st.secrets.get("ESTADO_DEL_CHAT", "true")
-
-if estado_chat == "false":
-    st.title("🥈 Asistente Silver Economy")
-    st.warning("🔒 El servicio está temporalmente desactivado por mantenimiento. Por favor, contacta al administrador.")
+# --- 1. INTERRUPTOR DE SEGURIDAD (Para apagar el chat si gastas mucho) ---
+if st.secrets.get("ESTADO_DEL_CHAT", "true") == "false":
+    st.warning("🔒 Chat desactivado temporalmente por mantenimiento.")
     st.stop()
 
 st.title("🥈 Asistente Silver Economy")
 
-# --- GESTIÓN DE LA API KEY (SEGURIDAD) ---
-# 1. Intenta leer la clave desde los Secretos de la Nube (Lo que configurarás luego)
+# --- 2. GESTIÓN DE API KEY (Desde Secretos) ---
 if "OPENAI_API_KEY" in st.secrets:
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-# 2. Si no hay secreto (estás en local), la pide en la barra lateral
 else:
-    openai_api_key = st.sidebar.text_input("OpenAI API Key:", type="password")
-    if not openai_api_key:
-        st.info("Por favor, introduce una API Key para comenzar.")
+    # Si falla el secreto, pedimos manual (plan B)
+    key = st.sidebar.text_input("API Key:", type="password")
+    if not key:
+        st.info("Ingresa la API Key para continuar.")
         st.stop()
-    os.environ["OPENAI_API_KEY"] = openai_api_key
+    os.environ["OPENAI_API_KEY"] = key
 
-# --- MOTOR DE IA (RAG) ---
+# --- 3. CARGA DE DATOS (A prueba de errores de ruta) ---
 @st.cache_resource
 def iniciar_base_datos():
-    ruta_data = "./Data"
+    # TRUCO: Buscamos la carpeta Data basándonos en dónde está ESTE archivo app.py
+    ruta_base = os.path.dirname(os.path.abspath(__file__))
+    ruta_data = os.path.join(ruta_base, "Data")
+    
     if not os.path.exists(ruta_data):
-        st.error("Carpeta 'Data' no encontrada.")
+        st.error(f"❌ No encuentro la carpeta Data en: {ruta_data}")
         return None
     
     docs = []
-    with st.spinner("Procesando documentos..."):
+    with st.spinner("Leyendo documentos..."):
         for archivo in os.listdir(ruta_data):
             if archivo.endswith(".pdf"):
                 loader = PyPDFLoader(os.path.join(ruta_data, archivo))
                 docs.extend(loader.load())
     
     if not docs:
-        st.error("No hay PDFs en la carpeta Data.")
+        st.warning("La carpeta Data existe pero no tiene PDFs.")
         return None
-
+        
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     splits = text_splitter.split_documents(docs)
     return FAISS.from_documents(splits, OpenAIEmbeddings())
 
+# Inicialización
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = iniciar_base_datos()
 
-if st.session_state.vectorstore is not None:
-    st.session_state.retriever = st.session_state.vectorstore.as_retriever(search_kwargs={"k": 3})
-else:
-    st.stop() # Detener si no hay base de datos
+if st.session_state.vectorstore is None:
+    st.stop() # Parar si no hay base de datos
 
+st.session_state.retriever = st.session_state.vectorstore.as_retriever()
+
+# --- 4. CHATBOT ---
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
-
-template = """Eres un asistente experto en Silver Economy.
-Contexto: {context}
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+template = """Responde basado solo en el contexto: {context}
 Historial: {chat_history}
-Pregunta: {question}
-Respuesta:"""
-prompt_template = ChatPromptTemplate.from_template(template)
+Pregunta: {question}"""
+prompt_temp = ChatPromptTemplate.from_template(template)
 
-def responder(pregunta, historial):
+def responder(pregunta):
     docs = st.session_state.retriever.invoke(pregunta)
-    contexto = "\n\n".join([d.page_content for d in docs])
-    historial_txt = "\n".join([f"{msg.type}: {msg.content}" for msg in historial[-4:]])
-    prompt = prompt_template.format_messages(context=contexto, chat_history=historial_txt, question=pregunta)
-    return llm.invoke(prompt).content
+    contexto = "\n".join([d.page_content for d in docs])
+    historial = "\n".join([f"{m.type}: {m.content}" for m in st.session_state.chat_history[-4:]])
+    return llm.invoke(prompt_temp.format_messages(context=contexto, chat_history=historial, question=pregunta)).content
 
-# --- INTERFAZ DE CHAT ---
 for msg in st.session_state.chat_history:
-    st.chat_message("assistant" if isinstance(msg, AIMessage) else "user").markdown(msg.content)
+    st.chat_message(msg.type).write(msg.content)
 
-if user_input := st.chat_input("Haz tu pregunta sobre los documentos..."):
-    st.session_state.chat_history.append(HumanMessage(content=user_input))
-    with st.chat_message("user"):
-        st.markdown(user_input)
-    
+if preg := st.chat_input("Pregunta aquí..."):
+    st.session_state.chat_history.append(HumanMessage(content=preg))
+    st.chat_message("user").write(preg)
     with st.chat_message("assistant"):
-        with st.spinner("Analizando..."):
-            response = responder(user_input, st.session_state.chat_history)
-            st.markdown(response)
-    st.session_state.chat_history.append(AIMessage(content=response))
+        resp = responder(preg)
+        st.write(resp)
+    st.session_state.chat_history.append(AIMessage(content=resp))
