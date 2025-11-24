@@ -125,42 +125,41 @@ if "ultimo_audio_id" not in st.session_state:
 for msg in st.session_state.chat_history:
     st.chat_message(msg.type).write(msg.content)
 
-# --- ZONA DE ENTRADA CORREGIDA (SOLUCIÓN AL BLOQUEO) ---
+# --- ZONA DE ENTRADA ---
 col1, col2 = st.columns([1, 4])
 with col1:
-    st.write("🎤 Hablar:")
-    # El grabador devuelve un diccionario con 'bytes' e 'id'
+    st.write("🎤 Voz:")
+    # El grabador nos da datos
     audio_data = mic_recorder(start_prompt="🔴", stop_prompt="⏹️", key='recorder')
+
+# CAMBIO CLAVE: El input de texto SIEMPRE está visible (fuera de los IFs)
+texto_input = st.chat_input("Escribe tu pregunta aquí...")
 
 prompt_usuario = None
 responder_con_voz = False
 
-# 1. ¿Hay audio en el grabador?
-if audio_data:
-    # 2. ¿Es un audio NUEVO que no hemos procesado antes?
-    if audio_data['id'] != st.session_state.ultimo_audio_id:
-        texto_transcrito = transcribir_audio(audio_data['bytes'])
-        if texto_transcrito:
-            prompt_usuario = texto_transcrito
-            responder_con_voz = True
-            # Guardamos este ID para no repetirlo
-            st.session_state.ultimo_audio_id = audio_data['id']
-    else:
-        # Si es el mismo audio viejo, lo ignoramos y miramos si hay texto
-        texto_input = st.chat_input("Escribe aquí...")
-        if texto_input:
-            prompt_usuario = texto_input
+# LÓGICA DE PRIORIDAD:
+# 1. ¿Hay un audio Y es diferente al último que procesamos? (Es NUEVO)
+if audio_data and audio_data['id'] != st.session_state.ultimo_audio_id:
+    texto_transcrito = transcribir_audio(audio_data['bytes'])
+    if texto_transcrito:
+        prompt_usuario = texto_transcrito
+        responder_con_voz = True
+        st.session_state.ultimo_audio_id = audio_data['id'] # ¡Marcamos como procesado!
 
-else:
-    # Si no hay datos de audio, miramos el texto
-    texto_input = st.chat_input("Escribe aquí...")
-    if texto_input:
-        prompt_usuario = texto_input
+# 2. Si no es audio nuevo, ¿hay texto?
+elif texto_input:
+    prompt_usuario = texto_input
+    responder_con_voz = False
 
 # --- PROCESAMIENTO ---
 if prompt_usuario:
     st.session_state.chat_history.append(HumanMessage(content=prompt_usuario))
-    if responder_con_voz: st.chat_message("user").write(prompt_usuario)
+    
+    if responder_con_voz: 
+        st.chat_message("user").write(f"🗣️ {prompt_usuario}")
+    else:
+        st.chat_message("user").write(prompt_usuario)
     
     with st.chat_message("assistant"):
         with st.spinner("Procesando..."):
@@ -177,9 +176,7 @@ if prompt_usuario:
                 🏥 **Emergencias:** 112 / 911
                 
                 Aunque soy una IA y quiero ayudarte, en situaciones de crisis necesitas contacto humano urgente."""
-                
-                st.error("Se ha detectado contenido de riesgo.")
-                
+                st.error("Emergencia detectada.")
             else:
                 respuesta = responder_rag(prompt_usuario)
                 if responder_con_voz:
