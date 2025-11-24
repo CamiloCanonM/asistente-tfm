@@ -6,7 +6,6 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage, HumanMessage
-# --- IMPORTACIONES DE VOZ ---
 from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
 import io
@@ -14,24 +13,20 @@ import io
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_icon="🥈", page_title="Asistente Silver Economy")
 
-# --- 1. INTERRUPTOR DE MANTENIMIENTO ---
 if st.secrets.get("ESTADO_DEL_CHAT", "true") == "false":
     st.warning("🔒 Chat en mantenimiento.")
     st.stop()
 
-st.title("🥈 Asistente Silver Economy (Con Voz)")
+st.title("🥈 Asistente Silver Economy (Híbrido)")
 
-# --- 2. GESTIÓN API KEY ---
+# --- GESTIÓN API KEY ---
 if "OPENAI_API_KEY" in st.secrets:
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 else:
     key = st.sidebar.text_input("API Key:", type="password")
-    if not key:
-        st.info("Ingresa la API Key.")
-        st.stop()
+    if not key: st.stop()
     os.environ["OPENAI_API_KEY"] = key
 
-# Cliente extra para funciones de audio (Whisper y TTS)
 client_audio = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 # --- FUNCIONES DE AUDIO ---
@@ -47,20 +42,17 @@ def transcribir_audio(audio_bytes):
 def texto_a_voz(texto):
     try:
         response = client_audio.audio.speech.create(
-            model="tts-1",
-            voice="alloy", # Opciones: alloy, echo, fable, onyx, nova, shimmer
-            input=texto
+            model="tts-1", voice="alloy", input=texto
         )
         return io.BytesIO(response.content)
     except Exception as e:
         return None
 
-# --- 3. CARGA DE DATOS ---
+# --- CARGA DE DATOS ---
 @st.cache_resource
 def iniciar_base_datos():
     ruta_base = os.path.dirname(os.path.abspath(__file__))
     ruta_data = os.path.join(ruta_base, "Data")
-    
     if not os.path.exists(ruta_data): return None
     
     docs = []
@@ -71,21 +63,16 @@ def iniciar_base_datos():
                 docs.extend(loader.load())
     
     if not docs: return None
-        
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     splits = text_splitter.split_documents(docs)
     return FAISS.from_documents(splits, OpenAIEmbeddings())
 
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = iniciar_base_datos()
-
-if st.session_state.vectorstore is None:
-    st.error("No se encontraron documentos en la carpeta Data.")
-    st.stop()
-
+if st.session_state.vectorstore is None: st.stop()
 st.session_state.retriever = st.session_state.vectorstore.as_retriever()
 
-# --- 4. CEREBRO DE SENTIMIENTOS (EL PSICÓLOGO) 🧠 ---
+# --- CEREBROS (Psicólogo y Bibliotecario) ---
 llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 template_seguridad = """Analiza el mensaje y clasifica: 
 1. PELIGRO (suicidio, autolesión, emergencias).
@@ -97,17 +84,30 @@ prompt_seguridad = ChatPromptTemplate.from_template(template_seguridad)
 def analizar_riesgo(mensaje):
     return (prompt_seguridad | llm_seguridad).invoke({"mensaje": mensaje}).content.strip().upper()
 
-# --- 5. CEREBRO RESPONDEDOR (EL BIBLIOTECARIO) 📚 ---
-llm_chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
-template_chat = """Eres un asistente Silver Economy CÁLIDO, PACIENTE y RESPETUOSO.
-1. 👋 SALUDOS: Si saludan, responde amablemente sin usar contexto.
-2. ❤️ EMPATÍA: Si hay quejas o tristeza, sé muy empático.
-3. 📄 CONTEXTO: Responde basándote SOLO en el contexto. Si no sabes, dilo.
+llm_chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.4)
+template_chat = """Eres un asistente virtual experto en Silver Economy, diseñado para acompañar a personas mayores y sus familias.
+Tu prioridad es ser útil, pero sobre todo CÁLIDO, PACIENTE y RESPETUOSO.
 
+Sigue estas reglas estrictas para responder:
+
+1. 👋 SALUDOS (Prioridad Alta): Si el usuario te saluda (ej: "hola", "buenos días"), IGNORA el contexto de los documentos. Simplemente responde el saludo con amabilidad, preséntate y pregunta en qué puedes ayudar.
+   * Ejemplo: "¡Hola! Es un gusto saludarte. Soy tu Asistente de Silver Economy. ¿Qué te gustaría saber hoy?"
+
+2. ❤️ EMPATÍA Y TONO:
+   * Usa frases conectoras amables: "Entiendo que esto es importante", "Gracias por tu pregunta", "Con mucho gusto te explico".
+   * Usa un lenguaje sencillo y claro, evitando palabras demasiado técnicas.
+
+3. 📄 USO DEL CONTEXTO:
+   * Para responder preguntas de contenido, básate ÚNICAMENTE en la información del "Contexto" proporcionado abajo.
+   * Si la respuesta está en el texto, explícala de forma conversacional, no como un robot leyendo una lista.
+
+4. 🚫 SI NO LO SABES:
+   * Si la información no está en el contexto, NO la inventes.
+   * Discúlpate con elegancia: "Lamento decirte que no tengo información específica sobre ese punto en mis documentos actuales, pero estoy aquí para ayudarte con cualquier otro tema del archivo.".
 Contexto: {context}
 Historial: {chat_history}
 Pregunta: {question}
-Respuesta:"""
+Respuesta Amable:"""
 prompt_chat = ChatPromptTemplate.from_template(template_chat)
 
 def responder_rag(pregunta):
@@ -116,63 +116,67 @@ def responder_rag(pregunta):
     historial = "\n".join([f"{m.type}: {m.content}" for m in st.session_state.chat_history[-4:]])
     return (prompt_chat | llm_chat).invoke({"context": contexto, "chat_history": historial, "question": pregunta}).content
 
-# --- 6. INTERFAZ DE CHAT MULTIMODAL (VOZ + TEXTO) ---
+# --- INTERFAZ ---
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "ultimo_audio_id" not in st.session_state:
+    st.session_state.ultimo_audio_id = None
 
 for msg in st.session_state.chat_history:
     st.chat_message(msg.type).write(msg.content)
 
-# ZONA DE ENTRADA
+# --- ZONA DE ENTRADA CORREGIDA (SOLUCIÓN AL BLOQUEO) ---
 col1, col2 = st.columns([1, 4])
 with col1:
     st.write("🎤 Hablar:")
-    audio_grabado = mic_recorder(start_prompt="🔴", stop_prompt="⏹️", key='recorder')
+    # El grabador devuelve un diccionario con 'bytes' e 'id'
+    audio_data = mic_recorder(start_prompt="🔴", stop_prompt="⏹️", key='recorder')
 
 prompt_usuario = None
+responder_con_voz = False
 
-# Prioridad: Si hay voz nueva, la usamos. Si no, miramos el texto.
-if audio_grabado:
-    texto_transcrito = transcribir_audio(audio_grabado['bytes'])
-    if texto_transcrito: prompt_usuario = texto_transcrito
-elif texto_input := st.chat_input("Escribe aquí..."):
-    prompt_usuario = texto_input
+# 1. ¿Hay audio en el grabador?
+if audio_data:
+    # 2. ¿Es un audio NUEVO que no hemos procesado antes?
+    if audio_data['id'] != st.session_state.ultimo_audio_id:
+        texto_transcrito = transcribir_audio(audio_data['bytes'])
+        if texto_transcrito:
+            prompt_usuario = texto_transcrito
+            responder_con_voz = True
+            # Guardamos este ID para no repetirlo
+            st.session_state.ultimo_audio_id = audio_data['id']
+    else:
+        # Si es el mismo audio viejo, lo ignoramos y miramos si hay texto
+        texto_input = st.chat_input("Escribe aquí...")
+        if texto_input:
+            prompt_usuario = texto_input
 
+else:
+    # Si no hay datos de audio, miramos el texto
+    texto_input = st.chat_input("Escribe aquí...")
+    if texto_input:
+        prompt_usuario = texto_input
+
+# --- PROCESAMIENTO ---
 if prompt_usuario:
     st.session_state.chat_history.append(HumanMessage(content=prompt_usuario))
-    # Si fue por voz, mostramos lo que entendió la IA
-    if audio_grabado: st.chat_message("user").write(prompt_usuario)
+    if responder_con_voz: st.chat_message("user").write(prompt_usuario)
     
     with st.chat_message("assistant"):
-        with st.spinner("Analizando emociones..."):
-            
-            # A) ANÁLISIS DE RIESGO
+        with st.spinner("Procesando..."):
             riesgo = analizar_riesgo(prompt_usuario)
-            audio_para_reproducir = None
+            audio_out = None
             
-            # 🔴 CASO ROJO: RIESGO DE VIDA
             if "PELIGRO" in riesgo:
-                respuesta = """🚨 **Mensaje Importante** 🚨
-                Siento mucho que estés pasando por esto. Por favor, busca ayuda profesional inmediatamente.
-                📞 **Línea de la Vida:** 800-911-2000 | 🏥 **Emergencias:** 112 / 911"""
-                st.error("Protocolo de emergencia activado.")
-                # NOTA: En caso de peligro, NO generamos audio para no ser invasivos.
-            
-            # 🟡 CASO AMARILLO: TRISTEZA
-            elif "NEGATIVO" in riesgo:
-                st.info("💡 Detecto que este tema es sensible. Te respondo con cuidado:")
-                respuesta = responder_rag(prompt_usuario)
-                audio_para_reproducir = texto_a_voz(respuesta)
-                
-            # 🟢 CASO VERDE: NORMAL
+                respuesta = "🚨 PROTOCOLO DE EMERGENCIA: Llama al 112/911. Busca ayuda profesional."
+                st.error("Emergencia detectada.")
             else:
                 respuesta = responder_rag(prompt_usuario)
-                audio_para_reproducir = texto_a_voz(respuesta)
+                if responder_con_voz:
+                    audio_out = texto_a_voz(respuesta)
             
             st.write(respuesta)
-            
-            # Reproducir audio si corresponde
-            if audio_para_reproducir:
-                st.audio(audio_para_reproducir, format="audio/mp3", autoplay=True)
+            if audio_out:
+                st.audio(audio_out, format="audio/mp3", autoplay=True)
             
     st.session_state.chat_history.append(AIMessage(content=respuesta))
