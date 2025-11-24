@@ -168,8 +168,18 @@ if prompt_usuario:
             audio_out = None
             
             if "PELIGRO" in riesgo:
-                respuesta = "🚨 PROTOCOLO DE EMERGENCIA: Llama al 112/911. Busca ayuda profesional."
-                st.error("Emergencia detectada.")
+                respuesta = """🚨 **Mensaje Importante** 🚨
+                
+                Siento mucho que estés pasando por un momento tan difícil. No estás solo/a.
+                Por favor, busca ayuda profesional inmediatamente.
+                
+                📞 **Línea de la Vida (Ejemplo):** 800-911-2000
+                🏥 **Emergencias:** 112 / 911
+                
+                Aunque soy una IA y quiero ayudarte, en situaciones de crisis necesitas contacto humano urgente."""
+                
+                st.error("Se ha detectado contenido de riesgo.")
+                
             else:
                 respuesta = responder_rag(prompt_usuario)
                 if responder_con_voz:
