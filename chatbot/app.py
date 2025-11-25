@@ -1,6 +1,9 @@
 import streamlit as st
 import os
-from langchain_community.document_loaders import PyPDFLoader
+import io
+import pandas as pd # Necesario para Excel
+# --- IMPORTACIONES DE LOADERS ---
+from langchain_community.document_loaders import PyPDFLoader, CSVLoader, TextLoader, UnstructuredExcelLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
@@ -8,10 +11,9 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage, HumanMessage
 from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
-import io
 
 # --- CONFIGURACIÓN ---
-st.set_page_config(page_icon="🥈", page_title="Asistente Silver Economy")
+st.set_page_config(page_icon="🥈", page_title="Asistente Conversacional KIVIA.AI")
 
 if st.secrets.get("ESTADO_DEL_CHAT", "true") == "false":
     st.warning("🔒 Chat en mantenimiento.")
@@ -48,7 +50,7 @@ def texto_a_voz(texto):
     except Exception as e:
         return None
 
-# --- CARGA DE DATOS ---
+# --- 🧠 EL CEREBRO DE INGESTA DE DATOS (NUEVO) ---
 @st.cache_resource
 def iniciar_base_datos():
     ruta_base = os.path.dirname(os.path.abspath(__file__))
@@ -56,15 +58,42 @@ def iniciar_base_datos():
     if not os.path.exists(ruta_data): return None
     
     docs = []
-    with st.spinner("Cargando memoria..."):
+    
+    # 🔄 ROUTER DE ARCHIVOS (FILTRADO POR EXTENSIÓN)
+    with st.spinner("Procesando PDFs, Excels y CSVs..."):
         for archivo in os.listdir(ruta_data):
-            if archivo.endswith(".pdf"):
-                loader = PyPDFLoader(os.path.join(ruta_data, archivo))
-                docs.extend(loader.load())
+            ruta_completa = os.path.join(ruta_data, archivo)
+            
+            try:
+                # CASO 1: PDF
+                if archivo.endswith(".pdf"):
+                    loader = PyPDFLoader(ruta_completa)
+                    docs.extend(loader.load())
+                
+                # CASO 2: CSV (Tablas separadas por comas)
+                elif archivo.endswith(".csv"):
+                    loader = CSVLoader(ruta_completa, encoding="utf-8")
+                    docs.extend(loader.load())
+                
+                # CASO 3: EXCEL (.xlsx)
+                elif archivo.endswith(".xlsx"):
+                    # Usamos Unstructured para Excel (modo "elements" extrae mejor el texto)
+                    loader = UnstructuredExcelLoader(ruta_completa, mode="elements")
+                    docs.extend(loader.load())
+                
+                # CASO 4: TEXTO PLANO (.txt)
+                elif archivo.endswith(".txt"):
+                    loader = TextLoader(ruta_completa, encoding="utf-8")
+                    docs.extend(loader.load())
+                    
+            except Exception as e:
+                st.error(f"Error cargando {archivo}: {e}")
+                continue # Si falla un archivo, sigue con el siguiente
     
     if not docs: return None
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     splits = text_splitter.split_documents(docs)
+    
     return FAISS.from_documents(splits, OpenAIEmbeddings())
 
 if "vectorstore" not in st.session_state:
@@ -103,7 +132,8 @@ Sigue estas reglas estrictas para responder:
 
 4. 🚫 SI NO LO SABES:
    * Si la información no está en el contexto, NO la inventes.
-   * Discúlpate con elegancia: "Lamento decirte que no tengo información específica sobre ese punto en mis documentos actuales, pero estoy aquí para ayudarte con cualquier otro tema del archivo.".
+   * Discúlpate con elegancia: "Lamento decirte que no tengo información específica sobre ese punto en mis documentos actuales, pero estoy aquí para ayudarte con cualquier otro tema del archivo."
+5. responde en el idioma que el usuario pregunte.
 Contexto: {context}
 Historial: {chat_history}
 Pregunta: {question}
