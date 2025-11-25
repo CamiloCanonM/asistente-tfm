@@ -17,7 +17,7 @@ if st.secrets.get("ESTADO_DEL_CHAT", "true") == "false":
     st.warning("🔒 Chat en mantenimiento.")
     st.stop()
 
-st.title("🥈 Asistente Silver Economy (Híbrido)")
+st.title("🥈 Asistente Conversacional KIVIA.AI")
 
 # --- GESTIÓN API KEY ---
 if "OPENAI_API_KEY" in st.secrets:
@@ -91,7 +91,7 @@ Tu prioridad es ser útil, pero sobre todo CÁLIDO, PACIENTE y RESPETUOSO.
 Sigue estas reglas estrictas para responder:
 
 1. 👋 SALUDOS (Prioridad Alta): Si el usuario te saluda (ej: "hola", "buenos días"), IGNORA el contexto de los documentos. Simplemente responde el saludo con amabilidad, preséntate y pregunta en qué puedes ayudar.
-   * Ejemplo: "¡Hola! Es un gusto saludarte. Soy tu Asistente de Silver Economy. ¿Qué te gustaría saber hoy?"
+   * Ejemplo: "¡Hola! Es un gusto saludarte. Soy tu Asistente Conversacional KIVIA.AI. ¿Qué te gustaría saber hoy?"
 
 2. ❤️ EMPATÍA Y TONO:
    * Usa frases conectoras amables: "Entiendo que esto es importante", "Gracias por tu pregunta", "Con mucho gusto te explico".
