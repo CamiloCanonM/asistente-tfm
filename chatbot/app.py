@@ -103,11 +103,16 @@ st.session_state.retriever = st.session_state.vectorstore.as_retriever()
 
 # --- CEREBROS (Psicólogo y Bibliotecario) ---
 llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
-template_seguridad = """Analiza el mensaje y clasifica: 
-1. PELIGRO (suicidio, autolesión, emergencias).
-2. NEGATIVO (tristeza, soledad, enojo).
-3. NORMAL (saludos, preguntas).
-Responde SOLO con la palabra clave. Mensaje: {mensaje}"""
+template_seguridad = """Actúa como un sistema de seguridad y clasificación de intenciones.
+Analiza el siguiente mensaje y clasifícalo en una de estas 3 categorías estrictas:
+
+1. PELIGRO: ÚNICAMENTE si hay intenciones claras de suicidio, autolesión, sobredosis intencional o violencia extrema.
+2. NEGATIVO: Si el usuario expresa tristeza, soledad, depresión o malestar emocional, pero SIN riesgo de vida inminente.
+3. NORMAL: Cualquier pregunta sobre salud, horarios de medicamentos, dosis, gestión financiera, saludos, o consultas de información general.
+
+Mensaje del usuario: {mensaje}
+
+Clasificación (Responde solo con una palabra):"""
 prompt_seguridad = ChatPromptTemplate.from_template(template_seguridad)
 
 def analizar_riesgo(mensaje):
