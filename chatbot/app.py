@@ -29,7 +29,7 @@ else:
     if not key: st.stop()
     os.environ["OPENAI_API_KEY"] = key
 
-client_audio = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+client_openai = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 # --- FUNCIONES MULTIMODALES ---
 def transcribir_audio(audio_bytes):
