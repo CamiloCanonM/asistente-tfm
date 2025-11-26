@@ -1,8 +1,8 @@
 import streamlit as st
 import os
 import io
-import pandas as pd # Necesario para Excel
-# --- IMPORTACIONES DE LOADERS ---
+import pandas as pd
+import base64
 from langchain_community.document_loaders import PyPDFLoader, CSVLoader, TextLoader, UnstructuredExcelLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -31,24 +31,33 @@ else:
 
 client_audio = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-# --- FUNCIONES DE AUDIO ---
+# --- FUNCIONES MULTIMODALES ---
 def transcribir_audio(audio_bytes):
     try:
         audio_file = io.BytesIO(audio_bytes)
         audio_file.name = "audio.mp3"
-        transcript = client_audio.audio.transcriptions.create(model="whisper-1", file=audio_file)
-        return transcript.text
-    except Exception as e:
-        return None
+        return client_openai.audio.transcriptions.create(model="whisper-1", file=audio_file).text
+    except: return None
 
 def texto_a_voz(texto):
     try:
-        response = client_audio.audio.speech.create(
-            model="tts-1", voice="alloy", input=texto
-        )
+        response = client_openai.audio.speech.create(model="tts-1", voice="alloy", input=texto)
         return io.BytesIO(response.content)
-    except Exception as e:
-        return None
+    except: return None
+
+def analizar_imagen(imagen_bytes):
+    try:
+        base64_image = base64.b64encode(imagen_bytes).decode('utf-8')
+        response = client_openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "Eres un asistente visual para mayores. Describe medicamentos o lee textos con claridad."},
+                {"role": "user", "content": [{"type": "text", "text": "¿Qué hay en la imagen?"}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}
+            ],
+            max_tokens=300
+        )
+        return response.choices[0].message.content
+    except: return "Error analizando imagen."
 
 # --- 🧠 EL CEREBRO DE INGESTA DE DATOS (NUEVO) ---
 @st.cache_resource
@@ -152,73 +161,95 @@ def responder_rag(pregunta):
     return (prompt_chat | llm_chat).invoke({"context": contexto, "chat_history": historial, "question": pregunta}).content
 
 # --- INTERFAZ ---
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-if "ultimo_audio_id" not in st.session_state:
-    st.session_state.ultimo_audio_id = None
+if "chat_history" not in st.session_state: st.session_state.chat_history = []
+if "ultimo_audio_id" not in st.session_state: st.session_state.ultimo_audio_id = None
 
+# ZONA DE CÁMARA
+with st.expander("📸 Cámara (Lectura de Etiquetas)"):
+    imagen_capturada = st.camera_input("Foto")
+
+# MOSTRAR CHAT
 for msg in st.session_state.chat_history:
     st.chat_message(msg.type).write(msg.content)
 
-# --- ZONA DE ENTRADA ---
+# ENTRADA DE DATOS
 col1, col2 = st.columns([1, 4])
 with col1:
-    st.write("🎤 Voz:")
-    # El grabador nos da datos
+    st.write("🎤")
     audio_data = mic_recorder(start_prompt="🔴", stop_prompt="⏹️", key='recorder')
+texto_input = st.chat_input("Escribe aquí...")
 
-# CAMBIO CLAVE: El input de texto SIEMPRE está visible (fuera de los IFs)
-texto_input = st.chat_input("Escribe tu pregunta aquí...")
-
+# LÓGICA DE PROCESAMIENTO
 prompt_usuario = None
+respuesta_ia = None
+es_vision = False
 responder_con_voz = False
 
-# LÓGICA DE PRIORIDAD:
-# 1. ¿Hay un audio Y es diferente al último que procesamos? (Es NUEVO)
-if audio_data and audio_data['id'] != st.session_state.ultimo_audio_id:
-    texto_transcrito = transcribir_audio(audio_data['bytes'])
-    if texto_transcrito:
-        prompt_usuario = texto_transcrito
-        responder_con_voz = True
-        st.session_state.ultimo_audio_id = audio_data['id'] # ¡Marcamos como procesado!
+# 1. Visión (Prioridad 1)
+if imagen_capturada:
+    if "ultima_foto_proc" not in st.session_state or st.session_state.ultima_foto_proc != imagen_capturada.getvalue():
+        prompt_usuario = "📸 [Analizando imagen...]"
+        with st.spinner("👁️ KIVIA está mirando..."):
+            respuesta_ia = analizar_imagen(imagen_capturada.getvalue())
+        es_vision = True
+        st.session_state.ultima_foto_proc = imagen_capturada.getvalue()
 
-# 2. Si no es audio nuevo, ¿hay texto?
+# 2. Audio (Prioridad 2)
+elif audio_data and audio_data['id'] != st.session_state.ultimo_audio_id:
+    texto = transcribir_audio(audio_data['bytes'])
+    if texto:
+        prompt_usuario = texto
+        responder_con_voz = True
+        st.session_state.ultimo_audio_id = audio_data['id']
+
+# 3. Texto (Prioridad 3)
 elif texto_input:
     prompt_usuario = texto_input
-    responder_con_voz = False
 
-# --- PROCESAMIENTO ---
+# --- 🚦 APLICACIÓN DEL SEMÁFORO 🚦 ---
 if prompt_usuario:
     st.session_state.chat_history.append(HumanMessage(content=prompt_usuario))
-    
-    if responder_con_voz: 
-        st.chat_message("user").write(f"🗣️ {prompt_usuario}")
-    else:
-        st.chat_message("user").write(prompt_usuario)
-    
-    with st.chat_message("assistant"):
-        with st.spinner("Procesando..."):
-            riesgo = analizar_riesgo(prompt_usuario)
-            audio_out = None
-            
-            if "PELIGRO" in riesgo:
-                respuesta = """🚨 **Mensaje Importante** 🚨
+    if not es_vision: st.chat_message("user").write(f"🗣️ {prompt_usuario}" if responder_con_voz else prompt_usuario)
+
+    # Si NO es visión, pasamos por el filtro de seguridad
+    if not es_vision and not respuesta_ia:
+        with st.chat_message("assistant"):
+            with st.spinner("Procesando..."):
                 
-                Siento mucho que estés pasando por un momento tan difícil. No estás solo/a.
-                Por favor, busca ayuda profesional inmediatamente.
+                # 1. ANÁLISIS DE RIESGO
+                riesgo = analizar_riesgo(prompt_usuario)
                 
-                📞 **Línea de la Vida (Ejemplo):** 800-911-2000
-                🏥 **Emergencias:** 112 / 911
+                # 🔴 CASO ROJO: PELIGRO
+                if "PELIGRO" in riesgo:
+                    respuesta_ia = """🚨 **ALERTA DE SEGURIDAD** 🚨
+                    
+                    He detectado una situación de riesgo vital.
+                    KIVIA no puede atender emergencias críticas.
+                    
+                    📞 **Por favor, llama YA al 112 o al teléfono de la esperanza.**
+                    No estás solo/a."""
+                    st.error("Protocolo de suicidio/riesgo activado.")
+                    responder_con_voz = False # No hablar para no agobiar
                 
-                Aunque soy una IA y quiero ayudarte, en situaciones de crisis necesitas contacto humano urgente."""
-                st.error("Emergencia detectada.")
-            else:
-                respuesta = responder_rag(prompt_usuario)
+                # 🟡 CASO AMARILLO: TRISTEZA (Empatía Extra)
+                elif "NEGATIVO" in riesgo:
+                    st.info("💛 KIVIA detecta que te sientes mal. Activando modo Acompañamiento.")
+                    # Agregamos una nota al prompt para que sea más cariñoso
+                    prompt_usuario = f"[USUARIO TRISTE] {prompt_usuario}" 
+                    respuesta_ia = responder_rag(prompt_usuario)
+                
+                # 🟢 CASO VERDE: NORMAL
+                else:
+                    respuesta_ia = responder_rag(prompt_usuario)
+
+    # MOSTRAR Y GUARDAR RESPUESTA
+    if respuesta_ia:
+        if not es_vision: # Si fue visión ya se mostró arriba
+            with st.chat_message("assistant"):
+                st.write(respuesta_ia)
                 if responder_con_voz:
-                    audio_out = texto_a_voz(respuesta)
-            
-            st.write(respuesta)
-            if audio_out:
-                st.audio(audio_out, format="audio/mp3", autoplay=True)
-            
-    st.session_state.chat_history.append(AIMessage(content=respuesta))
+                    audio_out = texto_a_voz(respuesta_ia)
+                    if audio_out: st.audio(audio_out, format="audio/mp3", autoplay=True)
+
+        st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
+        if es_vision: st.rerun()
