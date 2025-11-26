@@ -195,77 +195,87 @@ with col1:
     audio_data = mic_recorder(start_prompt="🔴", stop_prompt="⏹️", key='recorder')
 texto_input = st.chat_input("Escribe aquí...")
 
-# LÓGICA DE PROCESAMIENTO
+# --- LÓGICA DE PROCESAMIENTO CORREGIDA (SOLUCIÓN AL BLOQUEO) ---
 prompt_usuario = None
 respuesta_ia = None
 es_vision = False
 responder_con_voz = False
 
-# 1. Visión (Prioridad 1)
+# Variables de estado para detectar novedad
+# 1. ¿Es una foto NUEVA?
+es_foto_nueva = False
 if imagen_capturada:
-    if "ultima_foto_proc" not in st.session_state or st.session_state.ultima_foto_proc != imagen_capturada.getvalue():
-        prompt_usuario = "📸 [Analizando imagen...]"
-        with st.spinner("👁️ KIVIA está mirando..."):
-            respuesta_ia = analizar_imagen(imagen_capturada.getvalue())
-        es_vision = True
-        st.session_state.ultima_foto_proc = imagen_capturada.getvalue()
+    if "ultima_foto_proc" not in st.session_state:
+        st.session_state.ultima_foto_proc = None
+    
+    # Comparamos bytes para saber si cambió
+    if imagen_capturada.getvalue() != st.session_state.ultima_foto_proc:
+        es_foto_nueva = True
 
-# 2. Audio (Prioridad 2)
-elif audio_data and audio_data['id'] != st.session_state.ultimo_audio_id:
+# 2. ¿Es un audio NUEVO?
+es_audio_nuevo = False
+if audio_data and audio_data['id'] != st.session_state.ultimo_audio_id:
+    es_audio_nuevo = True
+
+
+# --- ÁRBOL DE DECISIÓN (Ahora sí deja pasar) ---
+
+# CASO A: FOTO NUEVA (Prioridad Absoluta)
+if es_foto_nueva:
+    prompt_usuario = "📸 [Analizando imagen...]"
+    with st.spinner("👁️ KIVIA está mirando..."):
+        respuesta_ia = analizar_imagen(imagen_capturada.getvalue())
+    es_vision = True
+    # Actualizamos el estado para que la próxima vez sea "foto vieja"
+    st.session_state.ultima_foto_proc = imagen_capturada.getvalue()
+
+# CASO B: AUDIO NUEVO (Solo si no hay foto nueva)
+elif es_audio_nuevo:
     texto = transcribir_audio(audio_data['bytes'])
     if texto:
         prompt_usuario = texto
         responder_con_voz = True
         st.session_state.ultimo_audio_id = audio_data['id']
 
-# 3. Texto (Prioridad 3)
+# CASO C: TEXTO (Solo si no hay nada nuevo arriba)
 elif texto_input:
     prompt_usuario = texto_input
 
-# --- 🚦 APLICACIÓN DEL SEMÁFORO 🚦 ---
+# --- EJECUCIÓN FINAL ---
 if prompt_usuario:
     st.session_state.chat_history.append(HumanMessage(content=prompt_usuario))
-    if not es_vision: st.chat_message("user").write(f"🗣️ {prompt_usuario}" if responder_con_voz else prompt_usuario)
+    
+    # Mostrar mensaje usuario
+    if not es_vision: 
+        st.chat_message("user").write(f"🗣️ {prompt_usuario}" if responder_con_voz else prompt_usuario)
 
-    # Si NO es visión, pasamos por el filtro de seguridad
+    # Si NO es visión y NO tenemos respuesta aún, pasamos por RAG y Seguridad
     if not es_vision and not respuesta_ia:
         with st.chat_message("assistant"):
             with st.spinner("Procesando..."):
-                
-                # 1. ANÁLISIS DE RIESGO
                 riesgo = analizar_riesgo(prompt_usuario)
                 
-                # 🔴 CASO ROJO: PELIGRO
                 if "PELIGRO" in riesgo:
-                    respuesta_ia = """🚨 **ALERTA DE SEGURIDAD** 🚨
-                    
-                    He detectado una situación de riesgo vital.
-                    KIVIA no puede atender emergencias críticas.
-                    
-                    📞 **Por favor, llama YA al 112 o al teléfono de la esperanza.**
-                    No estás solo/a."""
-                    st.error("Protocolo de suicidio/riesgo activado.")
-                    responder_con_voz = False # No hablar para no agobiar
-                
-                # 🟡 CASO AMARILLO: TRISTEZA (Empatía Extra)
+                    respuesta_ia = "🚨 EMERGENCIA: Llama al 123. No estás solo."
+                    st.error("Alerta de seguridad activada.")
+                    responder_con_voz = False
                 elif "NEGATIVO" in riesgo:
-                    st.info("💛 KIVIA detecta que te sientes mal. Activando modo Acompañamiento.")
-                    # Agregamos una nota al prompt para que sea más cariñoso
-                    prompt_usuario = f"[USUARIO TRISTE] {prompt_usuario}" 
-                    respuesta_ia = responder_rag(prompt_usuario)
-                
-                # 🟢 CASO VERDE: NORMAL
+                    st.info("💛 Modo Empatía activado.")
+                    respuesta_ia = responder_rag(f"[USUARIO TRISTE] {prompt_usuario}")
                 else:
                     respuesta_ia = responder_rag(prompt_usuario)
 
-    # MOSTRAR Y GUARDAR RESPUESTA
+    # MOSTRAR RESPUESTA IA
     if respuesta_ia:
-        if not es_vision: # Si fue visión ya se mostró arriba
+        if not es_vision:
             with st.chat_message("assistant"):
                 st.write(respuesta_ia)
                 if responder_con_voz:
                     audio_out = texto_a_voz(respuesta_ia)
                     if audio_out: st.audio(audio_out, format="audio/mp3", autoplay=True)
-
+        
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
-        if es_vision: st.rerun()
+        
+        # Si fue visión, recargamos para limpiar y mostrar el resultado en el historial
+        if es_vision: 
+            st.rerun()
