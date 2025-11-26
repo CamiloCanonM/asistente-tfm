@@ -47,17 +47,33 @@ def texto_a_voz(texto):
 
 def analizar_imagen(imagen_bytes):
     try:
+        # 1. Convertir a Base64
         base64_image = base64.b64encode(imagen_bytes).decode('utf-8')
+        
+        # 2. Enviar a OpenAI (Usando gpt-4o-mini que es más seguro y barato)
         response = client_openai.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini", 
             messages=[
-                {"role": "system", "content": "Eres un asistente visual para mayores. Describe medicamentos o lee textos con claridad."},
-                {"role": "user", "content": [{"type": "text", "text": "¿Qué hay en la imagen?"}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Describe esta imagen. Si hay texto, léelo."},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}",
+                                "detail": "low" # 'low' gasta menos tokens y suele fallar menos
+                            },
+                        },
+                    ],
+                }
             ],
             max_tokens=300
         )
         return response.choices[0].message.content
-    except: return "Error analizando imagen."
+    except Exception as e:
+        # Esto nos dirá EXACTAMENTE qué pasó en la pantalla
+        return f"❌ Error técnico: {str(e)}"
 
 # --- 🧠 EL CEREBRO DE INGESTA DE DATOS (NUEVO) ---
 @st.cache_resource
