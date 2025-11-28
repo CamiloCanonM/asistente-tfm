@@ -11,7 +11,5 @@ tiktoken
 streamlit-mic-recorder
 openpyxl
 pandas
-unstructured
-networkx
 msoffcrypto-tool
 Pillow
