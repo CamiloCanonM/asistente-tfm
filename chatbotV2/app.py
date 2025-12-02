@@ -102,13 +102,22 @@ def analizar_imagen(imagen_bytes):
     except Exception as e: return f"Error: {e}"
 
 def leer_reloj_en_vivo():
-    # 👇👇👇 TU LINK AQUÍ 👇👇👇
+    # 👇 TU LINK REAL YA PUESTO 👇
     url_sheet = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5BW0ZT3Mp5Sd9DdpmAKqgPC-iZzrGyRIM7zV-_gcBTw8eR3SJAqklacU462M5QtB8qhVUG7Q38Hw_/pub?output=csv"
+    
     try:
+        # Validación: Si el link sigue siendo el de ejemplo, paramos
         if "TU_CODIGO" in url_sheet: return None 
+        
+        # Leemos el CSV directamente de Google
         df = pd.read_csv(url_sheet)
+        
+        # Devolvemos la última fila (el dato más reciente)
         return df.iloc[-1] 
-    except: return None
+    except Exception as e:
+        # Si falla, imprimimos el error en la consola de Streamlit para que lo veas
+        print(f"Error leyendo Google Sheet: {e}")
+        return None
 
 # --- DATABASE ---
 @st.cache_resource
@@ -337,6 +346,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
