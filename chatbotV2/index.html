@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIVIA | Plataforma Silver Care</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* ESTILOS GENERALES (CSS) */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* TARJETA PRINCIPAL */
+        .container {
+            background-color: white;
+            width: 400px;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        /* LOGO Y TÍTULO */
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2D3748;
+            margin-bottom: 5px;
+            letter-spacing: -1px;
+        }
+        .logo span { color: #FF4B4B; } /* El color de Streamlit/Kivia */
+        
+        .subtitle {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+
+        /* FORMULARIO */
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #4A5568;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #E2E8F0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: 0.3s;
+            box-sizing: border-box; /* Para que el padding no rompa el ancho */
+        }
+
+        input:focus {
+            border-color: #FF4B4B;
+            outline: none;
+            background-color: #FFF5F5;
+        }
+
+        /* BOTÓN DE ACCESO */
+        .btn-access {
+            background-color: #FF4B4B;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-access:hover {
+            background-color: #d63d3d;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 75, 75, 0.3);
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: #A0AEC0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo">KIVIA<span>.AI</span></div>
+        <div class="subtitle">Plataforma de Gestión Silver Economy</div>
+
+        <div class="form-group">
+            <label>Nombre del Paciente</label>
+            <input type="text" id="nombre" placeholder="Ej: Ana García" value="Ana García">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 1;">
+                <label>Edad</label>
+                <input type="number" id="edad" value="72">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Peso (kg)</label>
+                <input type="number" id="peso" value="65">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Historial / Condición Médica</label>
+            <input type="text" id="condicion" placeholder="Ej: Diabetes Tipo 2" value="Diabetes">
+        </div>
+
+        <button class="btn-access" onclick="conectarConIA()">
+            💬 Iniciar Asistente Personal
+        </button>
+
+        <div class="footer-note">
+            Conexión segura v2.4 • Acceso autorizado para TFM
+        </div>
+    </div>
+
+    <script>
+        function conectarConIA() {
+            // 1. Recogemos los datos que escribió el usuario
+            const nombre = document.getElementById('nombre').value;
+            const edad = document.getElementById('edad').value;
+            const peso = document.getElementById('peso').value;
+            const condicion = document.getElementById('condicion').value;
+
+            // ⚠️ IMPORTANTE: PEGA AQUÍ EL LINK DE TU CHAT (APP.PY)
+            // Ejemplo: "https://kivia-asistente.streamlit.app"
+            const urlBase = "https://asistente-tfm-prieba2.streamlit.app/"; 
+
+            // Validación simple (para que no pongan el link falso)
+            if (urlBase.includes("PON_AQUI")) {
+                alert("⚠️ ¡Atención! Debes editar el archivo HTML y poner el link real de tu Streamlit.");
+                return;
+            }
+
+            // 2. Construimos la URL con los parámetros
+            const urlFinal = `${urlBase}?nombre=${encodeURIComponent(nombre)}&edad=${edad}&peso=${peso}&condicion=${encodeURIComponent(condicion)}`;
+
+            // 3. Abrimos el chat
+            window.open(urlFinal, '_blank');
+        }
+    </script>
+
+</body>
+</html>
