@@ -10,19 +10,62 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.documents import Document 
 from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
 
-# --- CONFIGURACIÓN ---
-st.set_page_config(page_icon="🥈", page_title="ASISTENTE KIVIA.AI")
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_icon="🥈", page_title="KIVIA.AI", layout="centered")
+
+# --- 🎨 CSS: ESTILO MODERNO Y LIMPIO ---
+st.markdown("""
+    <style>
+    /* 1. Ocultar elementos de sistema de Streamlit */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stDeployButton {display:none;}
+    
+    /* 2. Estilizar la cabecera */
+    h1 {
+        color: #FF4B4B;
+        font-size: 2.5rem !important;
+        text-align: center;
+    }
+    
+    /* 3. Botones más amigables (redondeados) */
+    .stButton>button {
+        border-radius: 20px;
+        width: 100%;
+    }
+    
+    /* 4. Ajustar el ancho del chat para que parezca una app móvil */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 5rem;
+        max_width: 700px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- CAPTURA DE PARÁMETROS URL ---
+params = st.query_params
+usuario_nombre = params.get("nombre", "Usuario")
+usuario_edad = params.get("edad", "No especificada")
+usuario_peso = params.get("peso", "No especificado")
+usuario_condicion = params.get("condicion", "Ninguna")
+
+PERFIL_CLINICO = f"""
+- Nombre: {usuario_nombre}
+- Edad: {usuario_edad}
+- Peso: {usuario_peso}
+- Condición: {usuario_condicion}
+"""
 
 if st.secrets.get("ESTADO_DEL_CHAT", "true") == "false":
-    st.warning("🔒 Chat en mantenimiento.")
+    st.warning("🔒 Mantenimiento.")
     st.stop()
 
-st.title("🥈 KIVIA.AI (Ecosistema Completo)")
-
-# --- GESTIÓN API KEY ---
+# --- API KEY ---
 if "OPENAI_API_KEY" in st.secrets:
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 else:
@@ -32,7 +75,7 @@ else:
 
 client_openai = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-# --- FUNCIONES AUXILIARES ---
+# --- FUNCIONES ---
 def transcribir_audio(audio_bytes):
     try:
         audio_file = io.BytesIO(audio_bytes)
@@ -52,125 +95,159 @@ def analizar_imagen(imagen_bytes):
         response = client_openai.chat.completions.create(
             model="gpt-4o-mini", 
             messages=[
-                {"role": "user", "content": [{"type": "text", "text": "Describe esta imagen (medicamento/instrucciones)."}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}
-            ],
-            max_tokens=300
+                {"role": "user", "content": [{"type": "text", "text": "Describe detalladamente esta imagen."}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}
+            ], max_tokens=500
         )
         return response.choices[0].message.content
     except Exception as e: return f"Error: {e}"
 
 def leer_reloj_en_vivo():
-    # 👇👇👇 ¡PEGA AQUÍ TU LINK DE GOOGLE SHEETS (CSV)! 👇👇👇
-    url_sheet = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5BW0ZT3Mp5Sd9DdpmAKqgPC-iZzrGyRIM7zV-_gcBTw8eR3SJAqklacU462M5QtB8qhVUG7Q38Hw_/pub?output=csv"
-    
+    # 👇👇👇 TU LINK AQUÍ 👇👇👇
+    url_sheet = "https://docs.google.com/spreadsheets/d/e/TU_CODIGO/pub?output=csv"
     try:
-        if "PON_AQUI" in url_sheet: return None # Protección si no has puesto el link
+        if "TU_CODIGO" in url_sheet: return None 
         df = pd.read_csv(url_sheet)
-        return df.iloc[-1] # Devuelve la última fila
+        return df.iloc[-1] 
     except: return None
 
-# --- CARGA DE DATOS (RAG) ---
+# --- DATABASE ---
 @st.cache_resource
 def iniciar_base_datos():
     ruta_base = os.path.dirname(os.path.abspath(__file__))
     ruta_data = os.path.join(ruta_base, "Data")
     if not os.path.exists(ruta_data): return None
     docs = []
-    with st.spinner("Cargando memoria..."):
-        for archivo in os.listdir(ruta_data):
-            ruta_path = os.path.join(ruta_data, archivo)
-            try:
-                if archivo.endswith(".pdf"): docs.extend(PyPDFLoader(ruta_path).load())
-                elif archivo.endswith(".xlsx"):
-                    df = pd.read_excel(ruta_path)
-                    docs.append(Document(page_content=df.to_string(index=False), metadata={"source": archivo}))
-            except: pass
+    for archivo in os.listdir(ruta_data):
+        ruta_path = os.path.join(ruta_data, archivo)
+        try:
+            if archivo.endswith(".pdf"): docs.extend(PyPDFLoader(ruta_path).load())
+            elif archivo.endswith(".xlsx"):
+                df = pd.read_excel(ruta_path)
+                docs.append(Document(page_content=df.to_string(index=False), metadata={"source": archivo}))
+        except: pass
     if not docs: return None
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     splits = text_splitter.split_documents(docs)
     return FAISS.from_documents(splits, OpenAIEmbeddings())
 
-from langchain.docstore.document import Document # Import necesario
 if "vectorstore" not in st.session_state: st.session_state.vectorstore = iniciar_base_datos()
-if st.session_state.vectorstore is None: st.stop()
-st.session_state.retriever = st.session_state.vectorstore.as_retriever()
 
-# --- CEREBROS (Seguridad y Chat) ---
+# Agregar archivo usuario
+def agregar_archivo_usuario(uploaded_file):
+    texto_extraido = ""
+    nombre_archivo = uploaded_file.name
+    if nombre_archivo.endswith(".pdf"):
+        with open("temp.pdf", "wb") as f: f.write(uploaded_file.getbuffer())
+        loader = PyPDFLoader("temp.pdf")
+        docs = loader.load()
+        texto_extraido = "\n".join([d.page_content for d in docs])
+    elif nombre_archivo.endswith(".txt"):
+        texto_extraido = uploaded_file.read().decode("utf-8")
+    elif nombre_archivo.endswith((".png", ".jpg", ".jpeg")):
+        with st.spinner("👀 Leyendo imagen..."):
+            texto_extraido = analizar_imagen(uploaded_file.getvalue())
+            
+    if texto_extraido:
+        nuevo_doc = Document(page_content=texto_extraido, metadata={"source": f"Usuario: {nombre_archivo}"})
+        splits = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).split_documents([nuevo_doc])
+        if st.session_state.vectorstore is None:
+            st.session_state.vectorstore = FAISS.from_documents(splits, OpenAIEmbeddings())
+        else:
+            st.session_state.vectorstore.add_documents(splits)
+        return True
+    return False
+
+if st.session_state.vectorstore:
+    st.session_state.retriever = st.session_state.vectorstore.as_retriever()
+else:
+    st.session_state.retriever = None
+
+# --- CEREBROS ---
 llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 prompt_seguridad = ChatPromptTemplate.from_template("Clasifica: 1. PELIGRO, 2. NEGATIVO, 3. NORMAL. Mensaje: {mensaje}")
 def analizar_riesgo(mensaje):
     return (prompt_seguridad | llm_seguridad).invoke({"mensaje": mensaje}).content.strip().upper()
 
 llm_chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
-prompt_chat = ChatPromptTemplate.from_template("Eres KIVIA. Responde con calidez.\nContexto: {context}\nPregunta: {question}")
-def responder_rag(pregunta):
-    docs = st.session_state.retriever.invoke(pregunta)
-    contexto = "\n".join([d.page_content for d in docs])
-    return (prompt_chat | llm_chat).invoke({"context": contexto, "question": pregunta}).content
+template_chat = f"""Eres KIVIA. Hablas con {usuario_nombre}.
+PERFIL: {PERFIL_CLINICO}
+Contexto: {{context}}
+Pregunta: {{question}}"""
+prompt_chat = ChatPromptTemplate.from_template(template_chat)
+
+def responder_rag(pregunta, nombre):
+    if st.session_state.retriever:
+        docs = st.session_state.retriever.invoke(pregunta)
+        contexto = "\n".join([d.page_content for d in docs])
+    else: contexto = "Sin datos."
+    return (prompt_chat | llm_chat).invoke({"context": contexto, "question": pregunta, "nombre_usuario": nombre}).content
 
 # --- INTERFAZ ---
 if "chat_history" not in st.session_state: st.session_state.chat_history = []
 if "ultimo_audio_id" not in st.session_state: st.session_state.ultimo_audio_id = None
 
-# ⌚ BARRA LATERAL IOT (MANUAL)
+# HEADER
+st.title(f"🥈 KIVIA.AI")
+st.markdown(f"**Hola, {usuario_nombre}** 👋")
+
+# BARRA LATERAL (Solo para cosas secundarias)
 with st.sidebar:
-    st.header("⌚ Monitor Wearable")
+    st.header("⚙️ Panel de Control")
+    archivo_subido = st.file_uploader("📂 Subir Receta/PDF", type=["pdf", "txt", "png", "jpg"])
+    if archivo_subido:
+        if "ultimo_archivo" not in st.session_state or st.session_state.ultimo_archivo != archivo_subido.name:
+            if agregar_archivo_usuario(archivo_subido):
+                st.success("✅ Memorizado")
+                st.session_state.ultimo_archivo = archivo_subido.name
+                st.session_state.retriever = st.session_state.vectorstore.as_retriever()
+    
+    st.divider()
     if st.button("🔄 Sincronizar Reloj"):
-        datos = leer_reloj_en_vivo()
-        if datos is not None:
-            ritmo = int(datos.get('Ritmo', 70))
-            pasos = int(datos.get('Pasos', 0))
-            st.metric("❤️ Ritmo", f"{ritmo} bpm", delta=f"{ritmo-70}")
-            st.metric("👣 Pasos", f"{pasos}")
-            
-            if ritmo > 100:
-                st.session_state.iot_alert = f"ALERTA CRÍTICA: Ritmo {ritmo} bpm detectado por el reloj."
-                st.error("⚠️ ANOMALÍA DETECTADA")
-            else:
-                st.success("✅ Signos estables")
-                if "iot_alert" in st.session_state: del st.session_state.iot_alert
-        else:
-            st.warning("Configura el Link de Google Sheet en el código.")
+        # Tu lógica de reloj aquí
+        pass
 
-# 📸 CÁMARA
-with st.expander("📸 Cámara (Lectura de Etiquetas)"):
-    imagen_capturada = st.camera_input("Foto")
-
-# 💬 CHAT
+# --- ZONA DE CHAT (CENTRAL) ---
 for msg in st.session_state.chat_history:
     st.chat_message(msg.type).write(msg.content)
 
-# 🎤 ENTRADA
-col1, col2 = st.columns([1, 4])
-with col1:
-    st.write("🎤")
-    audio_data = mic_recorder(start_prompt="🔴", stop_prompt="⏹️", key='recorder')
-texto_input = st.chat_input("Escribe aquí...")
+st.write("") # Espacio
+st.write("") # Espacio
 
-# 🧠 LÓGICA PROCESAMIENTO
+# --- BARRA DE HERRAMIENTAS (MODERNA) ---
+st.divider()
+col_cam, col_mic, col_txt = st.columns([1, 1, 0.1])
+
+with col_cam:
+    # Popover es más limpio que expander
+    with st.popover("📸 Cámara", use_container_width=True):
+        imagen_capturada = st.camera_input("Foto", label_visibility="collapsed")
+
+with col_mic:
+    audio_data = mic_recorder(start_prompt="🎙️ Hablar", stop_prompt="⏹️ Fin", key='recorder')
+
+# INPUT TEXTO
+texto_input = st.chat_input(f"Escribe aquí...")
+
+# --- LÓGICA ---
 prompt_usuario = None
 respuesta_ia = None
 es_vision = False
 responder_con_voz = False
-es_evento_iot = False
 
-# 0. ALERTA IOT (Prioridad Máxima)
-if "iot_alert" in st.session_state and st.session_state.iot_alert:
-    prompt_usuario = st.session_state.iot_alert
-    es_evento_iot = True
-    del st.session_state.iot_alert 
-
-# 1. VISIÓN (Si hay foto nueva)
-elif imagen_capturada:
+# 1. VISIÓN
+if imagen_capturada:
     if "ultima_foto_proc" not in st.session_state: st.session_state.ultima_foto_proc = None
     if imagen_capturada.getvalue() != st.session_state.ultima_foto_proc:
-        prompt_usuario = "📸 [Analizando imagen...]"
-        with st.spinner("👁️ KIVIA está mirando..."):
+        prompt_usuario = "📸 
+
+[Imagen de cámara]
+"
+        with st.spinner("👁️ Analizando..."):
             respuesta_ia = analizar_imagen(imagen_capturada.getvalue())
         es_vision = True
         st.session_state.ultima_foto_proc = imagen_capturada.getvalue()
 
-# 2. AUDIO (Si hay audio nuevo)
+# 2. AUDIO
 elif audio_data and audio_data['id'] != st.session_state.ultimo_audio_id:
     texto = transcribir_audio(audio_data['bytes'])
     if texto:
@@ -182,31 +259,23 @@ elif audio_data and audio_data['id'] != st.session_state.ultimo_audio_id:
 elif texto_input:
     prompt_usuario = texto_input
 
-# EJECUCIÓN
+# PROCESAMIENTO
 if prompt_usuario:
-    if es_evento_iot:
-        st.chat_message("user", avatar="⌚").write(f"**WEARABLE:** {prompt_usuario}")
-    else:
-        st.session_state.chat_history.append(HumanMessage(content=prompt_usuario))
-        if not es_vision: st.chat_message("user").write(f"🗣️ {prompt_usuario}" if responder_con_voz else prompt_usuario)
+    st.session_state.chat_history.append(HumanMessage(content=prompt_usuario))
+    if not es_vision: st.chat_message("user").write(f"🗣️ {prompt_usuario}" if responder_con_voz else prompt_usuario)
 
     if not es_vision and not respuesta_ia:
         with st.chat_message("assistant"):
-            with st.spinner("Procesando..."):
-                if es_evento_iot and "ALERTA" in prompt_usuario:
-                     respuesta_ia = "🚨 **ALERTA MÉDICA** 🚨\n\nEl reloj ha detectado una anomalía cardíaca severa.\n1. Siéntate.\n2. Contactando emergencias (112)."
-                     st.error("PROTOCOLO DE EMERGENCIA")
-                     responder_con_voz = True
+            with st.spinner("..."):
+                riesgo = analizar_riesgo(prompt_usuario)
+                if "PELIGRO" in riesgo:
+                    respuesta_ia = "🚨 EMERGENCIA 112"
+                    st.error("Alerta")
+                    responder_con_voz = False
+                elif "NEGATIVO" in riesgo:
+                    respuesta_ia = responder_rag(f"[TRISTE] {prompt_usuario}", usuario_nombre)
                 else:
-                    riesgo = analizar_riesgo(prompt_usuario)
-                    if "PELIGRO" in riesgo:
-                        respuesta_ia = "🚨 EMERGENCIA: Llama al 112. No estás solo."
-                        st.error("Alerta de seguridad.")
-                        responder_con_voz = False
-                    elif "NEGATIVO" in riesgo:
-                        respuesta_ia = responder_rag(f"[USUARIO TRISTE] {prompt_usuario}")
-                    else:
-                        respuesta_ia = responder_rag(prompt_usuario)
+                    respuesta_ia = responder_rag(prompt_usuario, usuario_nombre)
 
     if respuesta_ia:
         if not es_vision:
