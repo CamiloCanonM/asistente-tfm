@@ -164,12 +164,12 @@ else:
 
 # --- CEREBROS ---
 llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
-prompt_seguridad = ChatPromptTemplate.from_template("Actúa como un sistema de seguridad y clasificación de intenciones.
+prompt_seguridad = ChatPromptTemplate.from_template("""Actúa como un sistema de seguridad y clasificación de intenciones.
 Analiza el siguiente mensaje y clasifícalo en una de estas 3 categorías estrictas:
-
 1. PELIGRO: ÚNICAMENTE si hay intenciones claras de suicidio, autolesión, sobredosis intencional o violencia extrema.
 2. NEGATIVO: Si el usuario expresa tristeza, soledad, depresión o malestar emocional, pero SIN riesgo de vida inminente.
-3. NORMAL: Cualquier pregunta sobre salud, horarios de medicamentos, dosis, gestión financiera, saludos, o consultas de información general. Mensaje: {mensaje}")
+3. NORMAL: Cualquier pregunta sobre salud, horarios de medicamentos, dosis, gestión financiera, saludos, o consultas de información general. Mensaje: {mensaje}""")
+
 def analizar_riesgo(mensaje):
     return (prompt_seguridad | llm_seguridad).invoke({"mensaje": mensaje}).content.strip().upper()
 
@@ -308,6 +308,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
