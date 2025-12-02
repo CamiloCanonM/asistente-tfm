@@ -254,43 +254,66 @@ st.markdown(f"**Hola, {usuario_nombre}** 👋")
 
 
 # --- BARRA LATERAL 
+
 with st.sidebar:
+    st.header("⚙️ Panel de Control")
+    
+    # ---------------------------------------------------------
+    # 1. ZONA DE ARCHIVOS (RECUPERADA) 📂
+    # ---------------------------------------------------------
+    st.subheader("📂 Mis Documentos")
+    archivo_subido = st.file_uploader("Subir Receta o PDF", type=["pdf", "txt", "png", "jpg"])
+    
+    if archivo_subido:
+        # Verificamos si es un archivo nuevo para no procesarlo 2 veces
+        if "ultimo_archivo" not in st.session_state or st.session_state.ultimo_archivo != archivo_subido.name:
+            if agregar_archivo_usuario(archivo_subido):
+                st.success(f"✅ {archivo_subido.name} guardado en memoria.")
+                st.session_state.ultimo_archivo = archivo_subido.name
+                # Recargamos el buscador para que incluya este archivo nuevo
+                st.session_state.retriever = st.session_state.vectorstore.as_retriever()
+    
+    st.divider()
+
+    # ---------------------------------------------------------
+    # 2. ZONA DE RELOJ INTELIGENTE (DIAGNÓSTICO) ⌚
+    # ---------------------------------------------------------
     st.header("⌚ Monitor Wearable")
     
     if st.button("🔄 Sincronizar Reloj"):
         datos = leer_reloj_en_vivo()
         
         if datos is not None:
-            # 1. MOSTRAR DATOS CRUDOS (Para saber qué llega)
-            st.write("🔍 **Diagnóstico de datos:**")
-            st.write(datos) # Esto imprimirá la fila entera
+            # Mostramos los datos crudos para ver si Google responde
+            # st.write(datos) # Descomenta esto si quieres ver la fila entera
             
-            # 2. INTENTO DE LECTURA ROBUSTA
             try:
-                # Intentamos leer 'Ritmo', 'ritmo', 'RITMO' o la columna C (índice 2)
-                ritmo_leido = datos.get('Ritmo') or datos.get('ritmo') or datos.iloc[2]
+                # Intentamos leer las columnas siendo flexibles con mayúsculas/minúsculas
+                ritmo_bruto = datos.get('Ritmo') or datos.get('ritmo') or datos.iloc[2]
+                pasos_bruto = datos.get('Pasos') or datos.get('pasos') or datos.iloc[3]
+
+                # Limpiamos los datos por si tienen texto (ej: "70 bpm")
+                ritmo = int(str(ritmo_bruto).replace("bpm", "").strip())
+                pasos = int(str(pasos_bruto).replace("pasos", "").strip())
                 
-                # Forzamos que sea un número entero
-                ritmo = int(str(ritmo_leido).replace(" bpm", "").strip())
-                
-                pasos = int(str(datos.get('Pasos', 0)).replace(" pasos", "").strip())
-                
+                # Mostramos las métricas bonitas
                 st.metric("❤️ Ritmo", f"{ritmo} bpm", delta=f"{ritmo-70}")
+                st.metric("👣 Pasos", f"{pasos}")
                 
-                # 3. LÓGICA DE ALERTA
+                # Lógica de Alerta Roja
                 if ritmo > 100:
                     st.session_state.iot_alert = f"ALERTA CRÍTICA: Ritmo {ritmo} bpm detectado."
-                    st.error(f"⚠️ ANOMALÍA: {ritmo} bpm es muy alto.")
+                    st.error(f"⚠️ ANOMALÍA: {ritmo} bpm es peligroso.")
                 else:
-                    st.success("✅ Signos estables")
+                    st.success("✅ Signos vitales normales")
+                    # Borramos alerta si ya pasó el peligro
                     if "iot_alert" in st.session_state: del st.session_state.iot_alert
             
             except Exception as e:
-                st.error(f"Error procesando números: {e}")
-                st.warning("Revisa que en el Excel solo haya números en la columna Ritmo.")
-                
+                st.error("Error leyendo números del Excel.")
+                st.caption(f"Detalle técnico: {e}")
         else:
-            st.warning("No se pudo leer el Excel. Revisa el Link.")
+            st.warning("No se pudo conectar con Google Sheets.")
 
 # --- ZONA DE CHAT (CENTRAL) ---
 for msg in st.session_state.chat_history:
@@ -370,6 +393,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
