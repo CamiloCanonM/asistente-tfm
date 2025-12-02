@@ -103,7 +103,7 @@ def analizar_imagen(imagen_bytes):
 
 def leer_reloj_en_vivo():
     # 👇👇👇 TU LINK AQUÍ 👇👇👇
-    url_sheet = "https://docs.google.com/spreadsheets/d/e/TU_CODIGO/pub?output=csv"
+    url_sheet = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5BW0ZT3Mp5Sd9DdpmAKqgPC-iZzrGyRIM7zV-_gcBTw8eR3SJAqklacU462M5QtB8qhVUG7Q38Hw_/pub?output=csv"
     try:
         if "TU_CODIGO" in url_sheet: return None 
         df = pd.read_csv(url_sheet)
@@ -337,6 +337,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
