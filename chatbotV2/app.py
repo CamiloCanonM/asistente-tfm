@@ -173,14 +173,26 @@ else:
 
 
 # --- CEREBROS ---
-llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+"""Actúa como un filtro de seguridad lógico.
+Analiza el siguiente mensaje y clasifícalo.
 
-# 1. Prompt de Seguridad
-template_seguridad = """Actúa como un sistema de seguridad y clasificación de intenciones.
-Analiza el siguiente mensaje y clasifícalo en una de estas 3 categorías estrictas:
-1. PELIGRO: ÚNICAMENTE si hay intenciones claras de suicidio, autolesión, sobredosis intencional o violencia extrema.
-2. NEGATIVO: Si el usuario expresa tristeza, soledad, depresión o malestar emocional, pero SIN riesgo de vida inminente.
-3. NORMAL: Cualquier pregunta sobre salud, horarios de medicamentos, dosis, gestión financiera, saludos, o consultas de información general. Mensaje: {mensaje}"""
+Regla de Oro: Si la frase es ambigua, corta o pregunta por ubicación ("dónde", "cuándo"), clasifícala SIEMPRE como NORMAL.
+
+Categorías:
+1. PELIGRO: ÚNICAMENTE si hay una declaración EXPLÍCITA de querer morir o matar.
+   (Ej: "Me voy a suicidar", "Quiero acabar con mi vida ahora").
+
+2. NEGATIVO: Expresiones claras de tristeza o soledad.
+   (Ej: "Me siento muy solo", "Estoy llorando").
+
+3. NORMAL: Todo lo demás.
+   - Preguntas de seguimiento ("¿Y dónde quedan?", "¿Cuáles son?").
+   - Preguntas de salud o curiosidad.
+   - Cualquier cosa que no sea un riesgo vital obvio.
+
+Mensaje del usuario: {mensaje}
+
+Clasificación (PELIGRO / NEGATIVO / NORMAL):"""
 
 prompt_seguridad = ChatPromptTemplate.from_template(template_seguridad)
 
@@ -411,6 +423,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
