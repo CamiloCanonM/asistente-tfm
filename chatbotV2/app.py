@@ -206,11 +206,20 @@ Pregunta: {question}
 Respuesta Amable:"""
 prompt_chat = ChatPromptTemplate.from_template(template_chat)
 
-def responder_rag(pregunta):
-    docs = st.session_state.retriever.invoke(pregunta)
-    contexto = "\n".join([d.page_content for d in docs])
-    historial = "\n".join([f"{m.type}: {m.content}" for m in st.session_state.chat_history[-4:]])
-    return (prompt_chat | llm_chat).invoke({"context": contexto, "chat_history": historial, "question": pregunta}).content
+def responder_rag(pregunta, nombre):
+    if st.session_state.retriever:
+        docs = st.session_state.retriever.invoke(pregunta)
+        contexto = "\n".join([d.page_content for d in docs])
+    else: 
+        contexto = "No hay documentos cargados."
+    
+    # 3. Pasamos todas las variables al prompt
+    return (prompt_chat | llm_chat).invoke({
+        "context": contexto, 
+        "question": pregunta, 
+        "nombre_usuario": nombre,
+        "perfil": PERFIL_CLINICO
+    }).content
 
 # --- INTERFAZ ---
 if "chat_history" not in st.session_state: st.session_state.chat_history = []
@@ -315,6 +324,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
