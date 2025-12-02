@@ -242,21 +242,26 @@ Respuesta (Sin repetir saludos):"""
 prompt_chat = ChatPromptTemplate.from_template(template_chat)
 
 def responder_rag(pregunta, nombre):
-    # 1. Recuperamos contexto si hay base de datos
+    # A. Recuperar documentos (Contexto)
     if st.session_state.retriever:
         docs = st.session_state.retriever.invoke(pregunta)
         contexto = "\n".join([d.page_content for d in docs])
     else: 
-        contexto = "No hay documentos cargados en la memoria."
+        contexto = "No hay documentos cargados."
     
-    # 2. Invocamos al LLM pasando TODAS las variables necesarias
-    # Aquí es donde inyectamos el PERFIL_CLINICO que definimos al inicio del script
+    # B. Recuperar historial (Memoria) - ESTO FALTABA
+    # Tomamos los últimos 4 mensajes para que sepa si ya saludó
+    historial_texto = "\n".join([f"{m.type}: {m.content}" for m in st.session_state.chat_history[-4:]])
+    
+    # C. Enviarlo todo al cerebro
     return (prompt_chat | llm_chat).invoke({
         "context": contexto,
         "question": pregunta,
         "nombre_usuario": nombre,
-        "perfil": PERFIL_CLINICO 
+        "perfil": PERFIL_CLINICO,
+        "chat_history": historial_texto  # <--- ¡ESTA ES LA CLAVE QUE FALTABA!
     }).content
+
 
 # --- INTERFAZ ---
 if "chat_history" not in st.session_state: st.session_state.chat_history = []
@@ -407,6 +412,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
