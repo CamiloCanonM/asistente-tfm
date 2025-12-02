@@ -238,10 +238,8 @@ responder_con_voz = False
 if imagen_capturada:
     if "ultima_foto_proc" not in st.session_state: st.session_state.ultima_foto_proc = None
     if imagen_capturada.getvalue() != st.session_state.ultima_foto_proc:
-        prompt_usuario = "📸 
-
-[Imagen de cámara]
-"
+        prompt_usuario = "📸 [Imagen de cámara]"
+        
         with st.spinner("👁️ Analizando..."):
             respuesta_ia = analizar_imagen(imagen_capturada.getvalue())
         es_vision = True
@@ -287,3 +285,4 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
