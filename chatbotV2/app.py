@@ -173,7 +173,10 @@ else:
 
 
 # --- CEREBROS ---
-"""Actúa como un filtro de seguridad lógico.
+llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+
+# ⚠️ PROMPT DE SEGURIDAD (VERSIÓN PERMISIVA)
+template_seguridad = """Actúa como un filtro de seguridad lógico.
 Analiza el siguiente mensaje y clasifícalo.
 
 Regla de Oro: Si la frase es ambigua, corta o pregunta por ubicación ("dónde", "cuándo"), clasifícala SIEMPRE como NORMAL.
@@ -423,6 +426,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
