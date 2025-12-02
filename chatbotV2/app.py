@@ -171,19 +171,17 @@ if st.session_state.vectorstore:
 else:
     st.session_state.retriever = None
 
+
 # --- CEREBROS ---
 llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
-# 1. Prompt de Seguridad (Sin cambios, solo asegurando formato)
+# 1. Prompt de Seguridad
 template_seguridad = """Actúa como un sistema de seguridad y clasificación de intenciones.
 Analiza el siguiente mensaje y clasifícalo en una de estas 3 categorías estrictas:
 1. PELIGRO: ÚNICAMENTE si hay intenciones claras de suicidio, autolesión, sobredosis intencional o violencia extrema.
 2. NEGATIVO: Si el usuario expresa tristeza, soledad, depresión o malestar emocional, pero SIN riesgo de vida inminente.
-3. NORMAL: Cualquier pregunta sobre salud, horarios de medicamentos, dosis, gestión financiera, saludos, o consultas de información general.
+3. NORMAL: Cualquier pregunta sobre salud, horarios de medicamentos, dosis, gestión financiera, saludos, o consultas de información general. Mensaje: {mensaje}"""
 
-Mensaje: {mensaje}
-
-Clasificación (Responde solo con una palabra):"""
 prompt_seguridad = ChatPromptTemplate.from_template(template_seguridad)
 
 def analizar_riesgo(mensaje):
@@ -192,7 +190,7 @@ def analizar_riesgo(mensaje):
 # 2. Configuración del Chat Principal
 llm_chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
 
-# ⚠️ CORRECCIÓN: Quitamos la 'f' del principio y usamos llaves simples {}
+# --- PROMPT INTACTO (Tal cual lo pediste) ---
 template_chat = """Eres un asistente virtual experto en Silver Economy, diseñado para acompañar a personas mayores y sus familias.
 Tu prioridad es ser útil, pero sobre todo CÁLIDO, PACIENTE y RESPETUOSO.
 
@@ -241,6 +239,7 @@ Respuesta (Sin repetir saludos):"""
 
 prompt_chat = ChatPromptTemplate.from_template(template_chat)
 
+# --- FUNCIÓN  ---
 def responder_rag(pregunta, nombre):
     # A. Recuperar documentos (Contexto)
     if st.session_state.retriever:
@@ -249,17 +248,17 @@ def responder_rag(pregunta, nombre):
     else: 
         contexto = "No hay documentos cargados."
     
-    # B. Recuperar historial (Memoria) - ESTO FALTABA
-    # Tomamos los últimos 4 mensajes para que sepa si ya saludó
+    # B. Recuperar historial (Memoria)
     historial_texto = "\n".join([f"{m.type}: {m.content}" for m in st.session_state.chat_history[-4:]])
     
-    # C. Enviarlo todo al cerebro
+    # C. Enviarlo todo al cerebro (AQUÍ ESTABA EL ERROR)
+    # Debemos usar las MISMAS claves que pusiste entre llaves {} en el texto de arriba
     return (prompt_chat | llm_chat).invoke({
         "context": contexto,
         "question": pregunta,
-        "nombre_usuario": nombre,
-        "perfil": PERFIL_CLINICO,
-        "chat_history": historial_texto  # <--- ¡ESTA ES LA CLAVE QUE FALTABA!
+        "nombre_usuario": nombre,      # Coincide con {nombre_usuario}
+        "PERFIL_CLINICO": PERFIL_CLINICO, # Coincide con {PERFIL_CLINICO} (Antes tenías "perfil")
+        "chat_history": historial_texto
     }).content
 
 
@@ -412,6 +411,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
