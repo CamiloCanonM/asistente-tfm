@@ -252,21 +252,45 @@ if "ultimo_audio_id" not in st.session_state: st.session_state.ultimo_audio_id =
 st.title(f"🥈 KIVIA.AI")
 st.markdown(f"**Hola, {usuario_nombre}** 👋")
 
-# BARRA LATERAL (Solo para cosas secundarias)
+
+# --- BARRA LATERAL 
 with st.sidebar:
-    st.header("⚙️ Panel de Control")
-    archivo_subido = st.file_uploader("📂 Subir Receta/PDF", type=["pdf", "txt", "png", "jpg", "xlsx"])
-    if archivo_subido:
-        if "ultimo_archivo" not in st.session_state or st.session_state.ultimo_archivo != archivo_subido.name:
-            if agregar_archivo_usuario(archivo_subido):
-                st.success("✅ Memorizado")
-                st.session_state.ultimo_archivo = archivo_subido.name
-                st.session_state.retriever = st.session_state.vectorstore.as_retriever()
+    st.header("⌚ Monitor Wearable")
     
-    st.divider()
     if st.button("🔄 Sincronizar Reloj"):
-        # Tu lógica de reloj aquí
-        pass
+        datos = leer_reloj_en_vivo()
+        
+        if datos is not None:
+            # 1. MOSTRAR DATOS CRUDOS (Para saber qué llega)
+            st.write("🔍 **Diagnóstico de datos:**")
+            st.write(datos) # Esto imprimirá la fila entera
+            
+            # 2. INTENTO DE LECTURA ROBUSTA
+            try:
+                # Intentamos leer 'Ritmo', 'ritmo', 'RITMO' o la columna C (índice 2)
+                ritmo_leido = datos.get('Ritmo') or datos.get('ritmo') or datos.iloc[2]
+                
+                # Forzamos que sea un número entero
+                ritmo = int(str(ritmo_leido).replace(" bpm", "").strip())
+                
+                pasos = int(str(datos.get('Pasos', 0)).replace(" pasos", "").strip())
+                
+                st.metric("❤️ Ritmo", f"{ritmo} bpm", delta=f"{ritmo-70}")
+                
+                # 3. LÓGICA DE ALERTA
+                if ritmo > 100:
+                    st.session_state.iot_alert = f"ALERTA CRÍTICA: Ritmo {ritmo} bpm detectado."
+                    st.error(f"⚠️ ANOMALÍA: {ritmo} bpm es muy alto.")
+                else:
+                    st.success("✅ Signos estables")
+                    if "iot_alert" in st.session_state: del st.session_state.iot_alert
+            
+            except Exception as e:
+                st.error(f"Error procesando números: {e}")
+                st.warning("Revisa que en el Excel solo haya números en la columna Ritmo.")
+                
+        else:
+            st.warning("No se pudo leer el Excel. Revisa el Link.")
 
 # --- ZONA DE CHAT (CENTRAL) ---
 for msg in st.session_state.chat_history:
@@ -346,6 +370,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
