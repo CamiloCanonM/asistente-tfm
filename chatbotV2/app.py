@@ -262,7 +262,7 @@ with st.sidebar:
     # 1. ZONA DE ARCHIVOS (RECUPERADA) 📂
     # ---------------------------------------------------------
     st.subheader("📂 Mis Documentos")
-    archivo_subido = st.file_uploader("Subir Receta o PDF", type=["pdf", "txt", "png", "jpg"])
+    archivo_subido = st.file_uploader("Subir Receta o PDF", type=["pdf", "txt", "png", "jpg","xlsx"])
     
     if archivo_subido:
         # Verificamos si es un archivo nuevo para no procesarlo 2 veces
@@ -393,6 +393,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
