@@ -225,9 +225,7 @@ Sigue estas reglas estrictas para responder:
 7. 🧠 USO DEL CONTEXTO:
    - Usa la información de abajo para responder.
    - Si la respuesta NO está en el contexto, di: "Lo siento, no tengo esa información específica en mis documentos". ¡Pero NO te pongas a saludar para rellenar el silencio!
-
-   
-PERFIL CLÍNICO DEL USUARIO: {perfil}
+ 
 ---
 CONTEXTO RECUPERADO (Tus conocimientos):
 {context}
@@ -407,6 +405,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
