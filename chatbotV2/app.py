@@ -164,17 +164,27 @@ else:
 
 # --- CEREBROS ---
 llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
-prompt_seguridad = ChatPromptTemplate.from_template("""Actúa como un sistema de seguridad y clasificación de intenciones.
+
+# 1. Prompt de Seguridad (Sin cambios, solo asegurando formato)
+template_seguridad = """Actúa como un sistema de seguridad y clasificación de intenciones.
 Analiza el siguiente mensaje y clasifícalo en una de estas 3 categorías estrictas:
 1. PELIGRO: ÚNICAMENTE si hay intenciones claras de suicidio, autolesión, sobredosis intencional o violencia extrema.
 2. NEGATIVO: Si el usuario expresa tristeza, soledad, depresión o malestar emocional, pero SIN riesgo de vida inminente.
-3. NORMAL: Cualquier pregunta sobre salud, horarios de medicamentos, dosis, gestión financiera, saludos, o consultas de información general. Mensaje: {mensaje}""")
+3. NORMAL: Cualquier pregunta sobre salud, horarios de medicamentos, dosis, gestión financiera, saludos, o consultas de información general.
+
+Mensaje: {mensaje}
+
+Clasificación (Responde solo con una palabra):"""
+prompt_seguridad = ChatPromptTemplate.from_template(template_seguridad)
 
 def analizar_riesgo(mensaje):
     return (prompt_seguridad | llm_seguridad).invoke({"mensaje": mensaje}).content.strip().upper()
 
+# 2. Configuración del Chat Principal
 llm_chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
-template_chat = f"""Eres un asistente virtual experto en Silver Economy, diseñado para acompañar a personas mayores y sus familias.
+
+# ⚠️ CORRECCIÓN: Quitamos la 'f' del principio y usamos llaves simples {}
+template_chat = """Eres un asistente virtual experto en Silver Economy, diseñado para acompañar a personas mayores y sus familias.
 Tu prioridad es ser útil, pero sobre todo CÁLIDO, PACIENTE y RESPETUOSO.
 
 Sigue estas reglas estrictas para responder:
@@ -193,18 +203,37 @@ Sigue estas reglas estrictas para responder:
 4. 🚫 SI NO LO SABES:
    * Si la información no está en el contexto, NO la inventes.
    * Discúlpate con elegancia: "Lamento decirte que no tengo información específica sobre ese punto en mis documentos actuales, pero estoy aquí para ayudarte con cualquier otro tema del archivo."
-5. responde en el idioma que el usuario pregunte {usuario_nombre}.
-PERFIL: {PERFIL_CLINICO}
-Contexto: {{context}}
-Pregunta: {{question}}"""
+
+5. IDIOMA Y PERSONALIZACIÓN:
+   * Responde en el idioma que el usuario pregunte.
+   * Dirígete al usuario por su nombre: {nombre_usuario}.
+
+PERFIL CLÍNICO DEL USUARIO: {perfil}
+
+Contexto recuperado:
+{context}
+
+Pregunta del usuario: {question}
+Respuesta Amable:"""
+
 prompt_chat = ChatPromptTemplate.from_template(template_chat)
 
 def responder_rag(pregunta, nombre):
+    # 1. Recuperamos contexto si hay base de datos
     if st.session_state.retriever:
         docs = st.session_state.retriever.invoke(pregunta)
         contexto = "\n".join([d.page_content for d in docs])
-    else: contexto = "Sin datos."
-    return (prompt_chat | llm_chat).invoke({"context": contexto, "question": pregunta, "nombre_usuario": nombre}).content
+    else: 
+        contexto = "No hay documentos cargados en la memoria."
+    
+    # 2. Invocamos al LLM pasando TODAS las variables necesarias
+    # Aquí es donde inyectamos el PERFIL_CLINICO que definimos al inicio del script
+    return (prompt_chat | llm_chat).invoke({
+        "context": contexto,
+        "question": pregunta,
+        "nombre_usuario": nombre,
+        "perfil": PERFIL_CLINICO 
+    }).content
 
 # --- INTERFAZ ---
 if "chat_history" not in st.session_state: st.session_state.chat_history = []
@@ -308,6 +337,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
