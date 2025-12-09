@@ -17,7 +17,6 @@ from openai import OpenAI
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_icon="🥈", page_title="KIVIA.AI", layout="centered")
 
-# --- 🎨 CSS: ESTILO MODERNO Y LIMPIO ---
 st.markdown("""
     <style>
     /* 1. Ocultar elementos de sistema de Streamlit */
@@ -102,11 +101,11 @@ def analizar_imagen(imagen_bytes):
     except Exception as e: return f"Error: {e}"
 
 def leer_reloj_en_vivo():
-    # 👇 TU LINK REAL YA PUESTO 👇
+    # LINK HOJA DE CALCULO
     url_sheet = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5BW0ZT3Mp5Sd9DdpmAKqgPC-iZzrGyRIM7zV-_gcBTw8eR3SJAqklacU462M5QtB8qhVUG7Q38Hw_/pub?output=csv"
     
     try:
-        # Validación: Si el link sigue siendo el de ejemplo, paramos
+        # Validación
         if "TU_CODIGO" in url_sheet: return None 
         
         # Leemos el CSV directamente de Google
@@ -175,7 +174,7 @@ else:
 # --- CEREBROS ---
 llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
-# ⚠️ PROMPT DE SEGURIDAD (VERSIÓN PERMISIVA)
+# PROMPT DE SEGURIDAD (VERSIÓN PERMISIVA)
 template_seguridad = """Actúa como un filtro de seguridad lógico.
 Analiza el siguiente mensaje y clasifícalo.
 
@@ -202,10 +201,10 @@ prompt_seguridad = ChatPromptTemplate.from_template(template_seguridad)
 def analizar_riesgo(mensaje):
     return (prompt_seguridad | llm_seguridad).invoke({"mensaje": mensaje}).content.strip().upper()
 
-# 2. Configuración del Chat Principal
+# Configuración del Chat Principal
 llm_chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
 
-# --- PROMPT INTACTO (Tal cual lo pediste) ---
+# --- PROMPT INTACTO ---
 template_chat = """Eres un asistente virtual experto en Silver Economy, diseñado para acompañar a personas mayores y sus familias.
 Tu prioridad es ser útil, pero sobre todo CÁLIDO, PACIENTE y RESPETUOSO.
 
@@ -292,7 +291,7 @@ with st.sidebar:
     st.header("⚙️ Panel de Control")
     
     # ---------------------------------------------------------
-    # 1. ZONA DE ARCHIVOS (RECUPERADA) 📂
+    #  ZONA DE ARCHIVOS
     # ---------------------------------------------------------
     st.subheader("📂 Mis Documentos")
     archivo_subido = st.file_uploader("Subir Receta o PDF", type=["pdf", "txt", "png", "jpg","xlsx"])
@@ -309,7 +308,7 @@ with st.sidebar:
     st.divider()
 
     # ---------------------------------------------------------
-    # 2. ZONA DE RELOJ INTELIGENTE (DIAGNÓSTICO) ⌚
+    # ZONA DE RELOJ INTELIGENTE (DIAGNÓSTICO) ⌚
     # ---------------------------------------------------------
     st.header("⌚ Monitor Wearable")
     
@@ -355,7 +354,7 @@ for msg in st.session_state.chat_history:
 st.write("") # Espacio
 st.write("") # Espacio
 
-# --- BARRA DE HERRAMIENTAS (MODERNA) ---
+# --- BARRA DE HERRAMIENTAS---
 st.divider()
 col_cam, col_mic, col_txt = st.columns([1, 1, 0.1])
 
@@ -426,6 +425,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
