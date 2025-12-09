@@ -204,7 +204,7 @@ def analizar_riesgo(mensaje):
 # Configuración del Chat Principal
 llm_chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
 
-# --- PROMPT INTACTO ---
+# --- PROMPT---
 template_chat = """Eres un asistente virtual experto en Silver Economy, diseñado para acompañar a personas mayores y sus familias.
 Tu prioridad es ser útil, pero sobre todo CÁLIDO, PACIENTE y RESPETUOSO.
 
@@ -425,6 +425,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
