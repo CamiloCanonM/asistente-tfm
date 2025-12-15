@@ -16,40 +16,34 @@ from openai import OpenAI
 import streamlit as st
 import os 
 
-# --- 1. CONFIGURACIÓN DE PÁGINA ---
+# --- 1. CONFIGURACIÓN 
+
 st.set_page_config(
+    page_title="KIVIA.AI",
     page_icon="logo.png", 
     layout="centered"
 )
 
-# --- 2. ESTILOS CSS ---
+# --- ESTILOS (Para quitar márgenes y que quede pegado arriba) ---
 st.markdown("""
     <style>
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0rem;
+    }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    .stDeployButton {display:none;}
-    h1 {color: #0E4F75; text-align: center;}
-    .stButton>button {border-radius: 20px; width: 200%; border: 1px solid #0E4F75; color: #0E4F75;}
     </style>
 """, unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([1,10,1]) 
+# --- MOSTRAR EL BANNER (LOGO) ---
+# Al usar use_container_width=True, la imagen se alinea perfectamente con el chat
+ruta_logo = os.path.join(os.path.dirname(__file__), "logo.png")
 
-with col2:
-    # Truco: Obtenemos la ruta exacta de donde está este archivo app.py
-    ruta_actual = os.path.dirname(os.path.abspath(__file__))
-    
-    # Construimos la ruta completa a la imagen
-    ruta_logo = os.path.join(ruta_actual, "logo.png")
-    
-    # Verificamos si existe antes de mostrarla
-    if os.path.exists(ruta_logo):
-        st.image(ruta_logo, use_container_width=True)
-    else:
-        
-        st.error(" Sigo sin ver el archivo.")
-        st.write(f"Estoy buscando en: {ruta_actual}")
-        st.write("Archivos que veo aquí:", os.listdir(ruta_actual))
+if os.path.exists(ruta_logo):
+    st.image(ruta_logo, use_container_width=True)
+else:
+    st.error("⚠️ No encuentro el archivo logo.png")
 
 
 
@@ -431,6 +425,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
