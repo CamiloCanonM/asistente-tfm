@@ -21,7 +21,7 @@ import streamlit as st
 # Configuración de la página (¡Esto debe ser lo primero!)
 st.set_page_config(
    
-    page_icon="logo.png",  # Aquí va tu logo
+    page_icon="logo.png", 
     layout="centered")
 
 
@@ -433,6 +433,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
