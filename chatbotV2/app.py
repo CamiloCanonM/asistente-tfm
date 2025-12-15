@@ -14,14 +14,10 @@ from langchain_core.documents import Document
 from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
 import streamlit as st
-import streamlit as st
-
-import streamlit as st
 import os 
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    
     page_icon="logo.png", 
     layout="centered"
 )
@@ -56,7 +52,6 @@ with col2:
         st.write(f"Estoy buscando en: {ruta_actual}")
         st.write("Archivos que veo aquí:", os.listdir(ruta_actual))
 
-st.title("KIVIA.AI")
 
 
 # --- CAPTURA DE PARÁMETROS URL ---
@@ -438,6 +433,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
