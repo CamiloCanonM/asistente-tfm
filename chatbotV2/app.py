@@ -289,7 +289,6 @@ if "chat_history" not in st.session_state: st.session_state.chat_history = []
 if "ultimo_audio_id" not in st.session_state: st.session_state.ultimo_audio_id = None
 
 # HEADER
-st.title(f"🥈 KIVIA.AI")
 st.markdown(f"**Hola, {usuario_nombre}** 👋")
 
 
@@ -433,6 +432,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
