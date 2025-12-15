@@ -16,8 +16,10 @@ from openai import OpenAI
 import streamlit as st
 import streamlit as st
 
+import streamlit as st
+import os 
+
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
-# ESTO DEBE IR SIEMPRE PRIMERO. Solo una vez.
 st.set_page_config(
     page_title="KIVIA.AI",
     page_icon="logo.png", 
@@ -27,46 +29,32 @@ st.set_page_config(
 # --- 2. ESTILOS CSS ---
 st.markdown("""
     <style>
-    /* Ocultar elementos de sistema de Streamlit (Hamburguesa, footer, deploy) */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     .stDeployButton {display:none;}
-    
-    /* Estilizar el título */
-    h1 {
-        color: #0E4F75; /* Azul oscuro corporativo */
-        font-family: sans-serif;
-        text-align: center;
-    }
-    
-    /* Botones redondeados al 100% de ancho */
-    .stButton>button {
-        border-radius: 20px;
-        width: 100%;
-        border: 1px solid #0E4F75; /* Borde azul */
-        background-color: white;
-        color: #0E4F75;
-    }
-    
-    /* Efecto al pasar el ratón por encima del botón */
-    .stButton>button:hover {
-        background-color: #0E4F75;
-        color: white;
-        border-color: #0E4F75;
-    }
+    h1 {color: #0E4F75; text-align: center;}
+    .stButton>button {border-radius: 20px; width: 100%; border: 1px solid #0E4F75; color: #0E4F75;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. MOSTRAR EL LOGO Y TÍTULO ---
-# Usamos columnas para centrar el logo (1 parte vacía, 2 partes logo, 1 parte vacía)
+# --- 3. CÓDIGO A PROBA DE FALLOS PARA LA IMAGEN ---
 col1, col2, col3 = st.columns([1, 2, 1]) 
 
 with col2:
-    try:
-        # Intentamos cargar el logo. Si no existe, no rompe la app.
-        st.image("logo.png", use_container_width=True)
-    except:
-        st.warning("⚠️ No encuentro el archivo 'logo.png'. Asegúrate de subirlo a la carpeta.")
+    # Truco: Obtenemos la ruta exacta de donde está este archivo app.py
+    ruta_actual = os.path.dirname(os.path.abspath(__file__))
+    
+    # Construimos la ruta completa a la imagen
+    ruta_logo = os.path.join(ruta_actual, "logo.png")
+    
+    # Verificamos si existe antes de mostrarla
+    if os.path.exists(ruta_logo):
+        st.image(ruta_logo, use_container_width=True)
+    else:
+        # Si falla, mostramos qué archivos sí ve Python para ayudarte a corregirlo
+        st.error("❌ Sigo sin ver el archivo.")
+        st.write(f"Estoy buscando en: {ruta_actual}")
+        st.write("Archivos que veo aquí:", os.listdir(ruta_actual))
 
 st.title("KIVIA.AI")
 
@@ -450,6 +438,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
