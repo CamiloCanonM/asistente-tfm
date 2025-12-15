@@ -33,7 +33,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([1,10,1]) 
+col1, col2, col3 = st.columns([0,10,0]) 
 
 with col2:
     # Truco: Obtenemos la ruta exacta de donde está este archivo app.py
@@ -45,7 +45,8 @@ with col2:
     # Verificamos si existe antes de mostrarla
     if os.path.exists(ruta_logo):
         st.image(ruta_logo, use_container_width=True)
-    else# Si falla, mostramos qué archivos sí ve Python para ayudarte a corregirlo
+    else:
+        
         st.error(" Sigo sin ver el archivo.")
         st.write(f"Estoy buscando en: {ruta_actual}")
         st.write("Archivos que veo aquí:", os.listdir(ruta_actual))
@@ -430,6 +431,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
