@@ -14,45 +14,62 @@ from langchain_core.documents import Document
 from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
 import streamlit as st
+import streamlit as st
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-
-
-# Configuración de la página (¡Esto debe ser lo primero!)
+# --- 1. CONFIGURACIÓN DE PÁGINA ---
+# ESTO DEBE IR SIEMPRE PRIMERO. Solo una vez.
 st.set_page_config(
-   
+    page_title="KIVIA.AI",
     page_icon="logo.png", 
-    layout="centered")
+    layout="centered"
+)
 
-
+# --- 2. ESTILOS CSS ---
 st.markdown("""
     <style>
-    /* 1. Ocultar elementos de sistema de Streamlit */
+    /* Ocultar elementos de sistema de Streamlit (Hamburguesa, footer, deploy) */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     .stDeployButton {display:none;}
     
-    /* 2. Estilizar la cabecera */
+    /* Estilizar el título */
     h1 {
-        color: #FF4B4B;
-        font-size: 2.5rem !important;
+        color: #0E4F75; /* Azul oscuro corporativo */
+        font-family: sans-serif;
         text-align: center;
     }
     
-    /* 3. Botones más amigables (redondeados) */
+    /* Botones redondeados al 100% de ancho */
     .stButton>button {
         border-radius: 20px;
         width: 100%;
+        border: 1px solid #0E4F75; /* Borde azul */
+        background-color: white;
+        color: #0E4F75;
     }
     
-    /* 4. Ajustar el ancho del chat para que parezca una app móvil */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 5rem;
-        max_width: 700px;
+    /* Efecto al pasar el ratón por encima del botón */
+    .stButton>button:hover {
+        background-color: #0E4F75;
+        color: white;
+        border-color: #0E4F75;
     }
     </style>
 """, unsafe_allow_html=True)
+
+# --- 3. MOSTRAR EL LOGO Y TÍTULO ---
+# Usamos columnas para centrar el logo (1 parte vacía, 2 partes logo, 1 parte vacía)
+col1, col2, col3 = st.columns([1, 2, 1]) 
+
+with col2:
+    try:
+        # Intentamos cargar el logo. Si no existe, no rompe la app.
+        st.image("logo.png", use_container_width=True)
+    except:
+        st.warning("⚠️ No encuentro el archivo 'logo.png'. Asegúrate de subirlo a la carpeta.")
+
+st.title("KIVIA.AI")
+
 
 # --- CAPTURA DE PARÁMETROS URL ---
 params = st.query_params
@@ -433,6 +450,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
