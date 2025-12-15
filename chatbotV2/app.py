@@ -33,7 +33,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([0,10,0]) 
+col1, col2, col3 = st.columns([1,10,1]) 
 
 with col2:
     # Truco: Obtenemos la ruta exacta de donde está este archivo app.py
@@ -430,6 +430,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
