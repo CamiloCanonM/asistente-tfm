@@ -21,7 +21,7 @@ import os
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="KIVIA.AI",
+    
     page_icon="logo.png", 
     layout="centered"
 )
@@ -33,7 +33,7 @@ st.markdown("""
     footer {visibility: hidden;}
     .stDeployButton {display:none;}
     h1 {color: #0E4F75; text-align: center;}
-    .stButton>button {border-radius: 20px; width: 100%; border: 1px solid #0E4F75; color: #0E4F75;}
+    .stButton>button {border-radius: 20px; width: 200%; border: 1px solid #0E4F75; color: #0E4F75;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -438,6 +438,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
