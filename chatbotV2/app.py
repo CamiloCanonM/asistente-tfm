@@ -407,9 +407,9 @@ if prompt_usuario:
             with st.spinner("..."):
                 riesgo = analizar_riesgo(prompt_usuario)
                 if "PELIGRO" in riesgo:
-                    respuesta_ia = "🚨 EMERGENCIA: Llama al 123. No estás solo."
+                    respuesta_ia = "🚨 EMERGENCIA: Tu seguridad es lo más importante para mí. Por favor, llama al 123 ahora mismo. Respira tranquilo, estoy aquí contigo mientras llega la ayuda."
                     st.error("Alerta")
-                    responder_con_voz = False
+                    responder_con_voz = true
                 elif "NEGATIVO" in riesgo:
                     respuesta_ia = responder_rag(f"[TRISTE] {prompt_usuario}", usuario_nombre)
                 else:
@@ -425,6 +425,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
