@@ -15,37 +15,34 @@ from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
 import streamlit as st
 import os 
+import social_view
 
-# --- 1. CONFIGURACIÓN 
-
+# ---------------------------------------------------------
+# 1. CONFIGURACIÓN DE PÁGINA
+# ---------------------------------------------------------
 st.set_page_config(
-    page_title="KIVIA.AI",
-    page_icon="logo.png", 
-    layout="centered"
+    page_title="KIVIA - Health.AI",
+    page_icon="🌍",
+    layout="wide"
 )
 
-# --- ESTILOS (Para quitar márgenes y que quede pegado arriba) ---
+# --- ESTILOS CSS ---
 st.markdown("""
     <style>
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 0rem;
-    }
+    .block-container { padding-top: 1rem; padding-bottom: 0rem; }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- MOSTRAR EL BANNER (LOGO) ---
-# Al usar use_container_width=True, la imagen se alinea perfectamente con el chat
+# --- MEMORIA E INICIALIZACIÓN ---
+if "chat_history" not in st.session_state: st.session_state.chat_history = []
+if "ultimo_audio_id" not in st.session_state: st.session_state.ultimo_audio_id = None
+
+# --- MOSTRAR LOGO ---
 ruta_logo = os.path.join(os.path.dirname(__file__), "logo.png")
-
 if os.path.exists(ruta_logo):
-    st.image(ruta_logo, use_container_width=True)
-else:
-    st.error("⚠️ No encuentro el archivo logo.png")
-
-
+    st.image(ruta_logo, width=150)
 
 # --- CAPTURA DE PARÁMETROS URL ---
 params = st.query_params
@@ -425,6 +422,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
