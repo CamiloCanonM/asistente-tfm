@@ -14,3 +14,4 @@ pandas
 msoffcrypto-tool
 googlemaps
 Pillow
+streamlit-js-eval
