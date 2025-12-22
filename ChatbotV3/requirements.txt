@@ -12,4 +12,5 @@ streamlit-mic-recorder
 openpyxl
 pandas
 msoffcrypto-tool
+googlemaps
 Pillow
