@@ -17,32 +17,36 @@ import streamlit as st
 import os 
 import social_view
 
-# ---------------------------------------------------------
-# 1. CONFIGURACIÓN DE PÁGINA
-# ---------------------------------------------------------
+# --- 1. CONFIGURACIÓN 
+
 st.set_page_config(
-    page_title="KIVIA - Health.AI",
-    page_icon="🌍",
-    layout="wide"
+    page_title="KIVIA.AI",
+    page_icon="logo.png", 
+    layout="centered"
 )
 
-# --- ESTILOS CSS ---
+# --- ESTILOS (Para quitar márgenes y que quede pegado arriba) ---
 st.markdown("""
     <style>
-    .block-container { padding-top: 1rem; padding-bottom: 0rem; }
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0rem;
+    }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- MEMORIA E INICIALIZACIÓN ---
-if "chat_history" not in st.session_state: st.session_state.chat_history = []
-if "ultimo_audio_id" not in st.session_state: st.session_state.ultimo_audio_id = None
-
-# --- MOSTRAR LOGO ---
+# --- MOSTRAR EL BANNER (LOGO) ---
+# Al usar use_container_width=True, la imagen se alinea perfectamente con el chat
 ruta_logo = os.path.join(os.path.dirname(__file__), "logo.png")
+
 if os.path.exists(ruta_logo):
-    st.image(ruta_logo, width=150)
+    st.image(ruta_logo, use_container_width=True)
+else:
+    st.error("⚠️ No encuentro el archivo logo.png")
+
+
 
 # --- CAPTURA DE PARÁMETROS URL ---
 params = st.query_params
@@ -61,6 +65,7 @@ PERFIL_CLINICO = f"""
 if st.secrets.get("ESTADO_DEL_CHAT", "true") == "false":
     st.warning("🔒 Mantenimiento.")
     st.stop()
+
 
 # --- API KEY ---
 if "OPENAI_API_KEY" in st.secrets:
@@ -422,6 +427,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
