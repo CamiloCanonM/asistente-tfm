@@ -3,7 +3,7 @@ import pandas as pd
 import googlemaps
 import time
 from langchain_core.messages import AIMessage
-from streamlit_js_eval import get_geolocation # <--- NUEVA IMPORTACIÓN
+from streamlit_js_eval import get_geolocation
 
 # --- 1. CONEXIÓN ---
 def obtener_cliente_google():
@@ -13,19 +13,17 @@ def obtener_cliente_google():
         return googlemaps.Client(key=api_key)
     except: return None
 
-# --- 2. BÚSQUEDA HÍBRIDA (TEXTO O GPS) ---
+# --- 2. BÚSQUEDA HÍBRIDA + TU POSICIÓN ---
 def buscar_lugares_google(ciudad, palabra_clave, lat_gps=None, lon_gps=None):
     gmaps = obtener_cliente_google()
     if not gmaps: return None, "Error: Falta API Key."
 
     try:
-        # A. DETERMINAR EL CENTRO DE BÚSQUEDA
+        # A. DETERMINAR CENTRO
         if lat_gps is not None and lon_gps is not None:
-            # Opción 1: Usamos GPS directo
             lat_centro, lon_centro = lat_gps, lon_gps
-            origen_busqueda = "tu ubicación actual"
+            origen_busqueda = "tu ubicación"
         else:
-            # Opción 2: Buscamos la ciudad escrita
             geocode = gmaps.geocode(ciudad)
             if not geocode: return None, f"Ciudad no encontrada: {ciudad}"
             loc = geocode[0]['geometry']['location']
@@ -36,15 +34,30 @@ def buscar_lugares_google(ciudad, palabra_clave, lat_gps=None, lon_gps=None):
         res = gmaps.places_nearby(
             location=(lat_centro, lon_centro),
             keyword=palabra_clave,
-            radius=2000, # 2km a la redonda
+            radius=2000,
             open_now=False
         )
         
         lugares = res.get('results', [])
-        if not lugares: return None, f"No encontré {palabra_clave} cerca de {origen_busqueda}."
+        if not lugares: return None, f"No encontré {palabra_clave}."
 
-        # C. EXTRAER DATOS
+        # C. CONSTRUIR DATOS (Mezclando Usuario y Lugares)
         data_completa = []
+
+        # 1. INSERTAR TU UBICACIÓN (Punto AZUL) 🔵
+        if lat_gps is not None and lon_gps is not None:
+            data_completa.append({
+                'latitude': float(lat_gps),
+                'longitude': float(lon_gps),
+                'name': "🔵 TU UBICACIÓN ACTUAL",
+                'address': "Estás aquí ahora mismo",
+                'rating': "📍",
+                'place_id': None,
+                'color': '#0000FF',  # <--- AZUL PURO
+                'size': 50           # <--- MÁS GRANDE
+            })
+
+        # 2. INSERTAR LUGARES ENCONTRADOS (Puntos ROJOS) 🔴
         for l in lugares:
             data_completa.append({
                 'latitude': float(l['geometry']['location']['lat']),
@@ -52,51 +65,48 @@ def buscar_lugares_google(ciudad, palabra_clave, lat_gps=None, lon_gps=None):
                 'name': l.get('name', 'Sin nombre'),
                 'address': l.get('vicinity', 'Dirección desconocida'),
                 'rating': l.get('rating', 'N/A'),
-                'place_id': l.get('place_id')
+                'place_id': l.get('place_id'),
+                'color': '#FF0000',  # <--- ROJO
+                'size': 20           # <--- TAMAÑO NORMAL
             })
             
-        return pd.DataFrame(data_completa), f"✅ Encontré {len(data_completa)} {palabra_clave} cerca de {origen_busqueda}."
+        return pd.DataFrame(data_completa), f"✅ Encontré {len(lugares)} {palabra_clave} cerca de {origen_busqueda}."
 
     except Exception as e:
         return None, f"Error: {str(e)}"
 
-# --- 3. RENDERIZADO CON GPS ---
+# --- 3. RENDERIZADO ---
 def renderizar_sidebar():
     st.subheader("📍 Mapa Inteligente")
     
     if "mapa_data" not in st.session_state:
         st.session_state.mapa_data = None
 
-    # --- ZONA DE CONFIGURACIÓN ---
     tipo = st.selectbox("Buscar:", ["Farmacias", "Hospitales", "Parques", "Gimnasios", "Restaurantes"])
     
     # CHECKBOX GPS
-    usar_gps = st.checkbox("📍 Usar mi ubicación actual (GPS)")
+    usar_gps = st.checkbox("📍 Usar mi ubicación (GPS)")
     
     lat_usuario, lon_usuario = None, None
     ciudad = ""
 
     if usar_gps:
-        # Esto pide permiso al navegador
         loc = get_geolocation()
         if loc:
             lat_usuario = loc['coords']['latitude']
             lon_usuario = loc['coords']['longitude']
-            st.caption(f"📡 GPS Detectado: {lat_usuario:.4f}, {lon_usuario:.4f}")
+            st.caption(f"📡 GPS Activo: {lat_usuario:.4f}, {lon_usuario:.4f}")
         else:
-            st.warning("⚠️ Esperando permiso de ubicación...")
+            st.warning("⚠️ Esperando señal GPS...")
     else:
         ciudad = st.text_input("Ciudad:", "Bogota")
 
-    # --- BOTÓN DE BÚSQUEDA ---
-    if st.button("🔍 BUSCAR AHORA", use_container_width=True):
-        
-        # Validar que tengamos datos para buscar
+    # BOTÓN
+    if st.button("🔍 LOCALIZAR", use_container_width=True):
         if usar_gps and lat_usuario is None:
-            st.error("⚠️ Aún no tengo tu ubicación. Espera un segundo o desactiva el GPS.")
+            st.error("⚠️ Espera a que cargue el GPS o desactívalo.")
         else:
-            with st.spinner("Escaneando zona..."):
-                # Llamamos a la función con o sin coordenadas
+            with st.spinner("Triangulando..."):
                 df, msg = buscar_lugares_google(ciudad, tipo, lat_gps=lat_usuario, lon_gps=lon_usuario)
                 
                 if df is not None:
@@ -106,20 +116,24 @@ def renderizar_sidebar():
                 else:
                     st.error(msg)
     
-    # --- RESULTADOS ---
+    # --- VISUALIZACIÓN ---
     if st.session_state.mapa_data is not None:
         df = st.session_state.mapa_data
-        st.map(df, size=20, color='#0044ff') 
+        
+        # 🗺️ EL MAPA CON COLORES (AZUL vs ROJO)
+        # Usamos las columnas 'color' y 'size' que creamos arriba
+        st.map(df, color='color', size='size') 
 
         st.divider()
-        st.caption(f"Resultados más cercanos:")
+        st.caption("Detalles:")
 
         for index, row in df.iterrows():
-            with st.expander(f"📍 {row['name']} ({row['rating']}⭐)"):
-                st.write(f"🏠 {row['address']}")
-                # Enlace corregido para abrir la ruta
-                link_google = f"https://www.google.com/maps/dir/?api=1&destination={row['latitude']},{row['longitude']}&destination_place_id={row['place_id']}"
-                st.markdown(f"[🚗 **LLÉVAME ALLÍ**]({link_google})")
+            # Filtramos para no mostrar tarjeta de "Tu Ubicación" (que no tiene place_id)
+            if row['place_id'] is not None:
+                with st.expander(f"📍 {row['name']} ({row['rating']}⭐)"):
+                    st.write(f"🏠 {row['address']}")
+                    link_google = f"https://www.google.com/maps/dir/?api=1&destination={row['name'].replace(' ', '+')}&destination_place_id={row['place_id']}"
+                    st.markdown(f"[🚗 **CÓMO LLEGAR**]({link_google})")
         
         if st.button("Limpiar"):
             st.session_state.mapa_data = None
