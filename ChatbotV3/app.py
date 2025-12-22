@@ -292,15 +292,13 @@ st.markdown(f"**Hola, {usuario_nombre}** 👋")
 with st.sidebar:
     st.header("⚙️ Panel de Control")
     
-# --- 1. INTEGRACIÓN SOCIAL VIEW ---
-    resultado_mapa = social_view.renderizar_sidebar()
+    # ---------------------------------------------------------
+    # 1. INTEGRACIÓN SOCIAL VIEW (MAPAS)
+    # ---------------------------------------------------------
+    # Solo llamamos a la función. Ella se encarga de todo.
+    social_view.renderizar_sidebar()
     
-    if resultado_mapa:
-        # Añadimos el mensaje al chat
-        st.session_state.chat_history.append(AIMessage(content=f"[SISTEMA MAPAS]: {resultado_mapa}"))
-        # NO hacemos st.rerun() aquí inmediatamente para dejar que el mapa se pinte primero
-        
-    st.divider()    
+    st.divider()
     
     # ---------------------------------------------------------
     #  ZONA DE ARCHIVOS
@@ -437,6 +435,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
