@@ -2,9 +2,8 @@ import streamlit as st
 import pandas as pd
 import googlemaps
 import time
-import numpy as np
 
-# --- 1. CONFIGURACIÓN DEL CLIENTE GOOGLE ---
+# --- 1. CONFIGURACIÓN DEL CLIENTE ---
 def obtener_cliente_google():
     try:
         api_key = st.secrets.get("GOOGLE_API_KEY")
@@ -16,25 +15,18 @@ def obtener_cliente_google():
 def buscar_lugares_google(ciudad, palabra_clave):
     gmaps = obtener_cliente_google()
     
-    # MODO SIMULACIÓN (Si falla la API)
-    if not gmaps:
-        time.sleep(1)
-        lat_base, lon_base = 40.4168, -3.7038
-        return pd.DataFrame(
-            np.random.randn(5, 2) / 100 + [lat_base, lon_base],
-            columns=['lat', 'lon']
-        ), f"Simulación: 5 {palabra_clave} en {ciudad}."
-
-    # MODO REAL (Google Maps)
+    # MODO REAL
     try:
+        # 1. Geocoding
         geocode_result = gmaps.geocode(ciudad)
-        if not geocode_result: return None, f"No encontré la ciudad: {ciudad}"
+        if not geocode_result: 
+            return None, f"No encontré la ciudad: {ciudad}"
             
         location = geocode_result[0]['geometry']['location']
         lat_centro = location['lat']
         lon_centro = location['lng']
 
-        # Buscar lugares (Radio 2km)
+        # 2. Places Search
         places_result = gmaps.places_nearby(
             location=(lat_centro, lon_centro),
             keyword=palabra_clave,
@@ -42,55 +34,57 @@ def buscar_lugares_google(ciudad, palabra_clave):
         )
 
         lugares = places_result.get('results', [])
-        if not lugares: return None, f"No encontré {palabra_clave} en {ciudad}."
+        if not lugares: 
+            return None, f"No encontré {palabra_clave} en {ciudad}."
 
+        # 3. Construir DataFrame limpio
         data_mapa = []
         for lugar in lugares:
-            lat = lugar['geometry']['location']['lat']
-            lng = lugar['geometry']['location']['lng']
+            lat = float(lugar['geometry']['location']['lat']) # Forzar decimal
+            lng = float(lugar['geometry']['location']['lng']) # Forzar decimal
             data_mapa.append([lat, lng])
             
-        # NOMBRES DE COLUMNAS CORRECTOS PARA STREAMLIT (lat, lon)
-        df = pd.DataFrame(data_mapa, columns=['lat', 'lon'])
+        # Usamos nombres explícitos para que st.map no falle
+        df = pd.DataFrame(data_mapa, columns=['latitude', 'longitude'])
         
         return df, f"✅ He encontrado {len(df)} {palabra_clave} en {ciudad}."
 
     except Exception as e:
-        return None, f"Error Google: {str(e)}"
+        return None, f"Error: {str(e)}"
 
-# --- 3. RENDERIZADO CON MEMORIA ---
+# --- 3. RENDERIZADO (LA PARTE IMPORTANTE) ---
 def renderizar_sidebar():
-    st.subheader("📍 Social View (Google)")
+    st.subheader("📍 Mapa en vivo")
     
-    # Inicializar memoria del mapa si no existe
+    # Inicializar memoria
     if "mapa_data" not in st.session_state:
         st.session_state.mapa_data = None
 
     ciudad = st.text_input("Ciudad:", "Bogota")
-    tipo = st.selectbox("Buscar:", ["Farmacias", "Parques", "Gimnasios", "Hospitales", "Cafeterías"])
+    tipo = st.selectbox("Buscar:", ["Farmacias", "Hospitales", "Parques", "Gimnasios"])
     
-    # BOTÓN DE BÚSQUEDA
-    if st.button("🔍 Buscar"):
-        with st.spinner("Buscando en el mapa..."):
+    # BOTÓN
+    if st.button("🔍 Buscar ahora"):
+        with st.spinner("Conectando satélite..."):
             df_resultados, mensaje = buscar_lugares_google(ciudad, tipo)
             
-            if df_resultados is not None and not df_resultados.empty:
-                # 1. GUARDAMOS EN MEMORIA
-                st.session_state.mapa_data = df_resultados
+            if df_resultados is not None:
+                st.session_state.mapa_data = df_resultados # Guardar en memoria
                 st.success(mensaje)
-                return mensaje # Devolvemos el mensaje para el chat
+                return mensaje
             else:
                 st.error(mensaje)
-                st.session_state.mapa_data = None # Limpiamos si hay error
-                return None
-
-    # PINTAR EL MAPA (Se ejecuta SIEMPRE si hay datos en memoria)
+    
+    # --- PINTAR EL MAPA SIEMPRE QUE HAYA DATOS ---
+    # Esto está fuera del botón para que no desaparezca al recargar
     if st.session_state.mapa_data is not None:
-        st.map(st.session_state.mapa_data)
+        st.divider()
+        st.caption("Resultados en el mapa:")
+        # Forzamos pintar en la sidebar explícitamente
+        st.sidebar.map(st.session_state.mapa_data, zoom=13)
         
-        # Botón para limpiar el mapa
-        if st.button("🗑️ Limpiar Mapa"):
+        if st.button("Limpiar Mapa"):
             st.session_state.mapa_data = None
             st.rerun()
-
+            
     return None
