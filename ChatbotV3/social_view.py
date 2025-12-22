@@ -12,76 +12,98 @@ def obtener_cliente_google():
         return googlemaps.Client(key=api_key)
     except: return None
 
-# --- 2. BÚSQUEDA ---
+# --- 2. BÚSQUEDA ENRIQUECIDA ---
 def buscar_lugares_google(ciudad, palabra_clave):
     gmaps = obtener_cliente_google()
     
-    # Si no hay API Key, error silencioso (o modo demo)
-    if not gmaps:
-        return None, "Error: No detecto la API Key de Google."
+    if not gmaps: return None, "Error: Falta API Key."
 
     try:
-        # A. Geocodificar
-        geocode_result = gmaps.geocode(ciudad)
-        if not geocode_result: return None, f"No encontré la ciudad: {ciudad}"
+        # A. Geocodificar ciudad
+        geocode = gmaps.geocode(ciudad)
+        if not geocode: return None, f"Ciudad no encontrada: {ciudad}"
         
-        loc = geocode_result[0]['geometry']['location']
+        loc = geocode[0]['geometry']['location']
         lat_centro, lon_centro = loc['lat'], loc['lng']
 
-        # B. Buscar Lugares
-        places_result = gmaps.places_nearby(
+        # B. Buscar Lugares (Solicitamos más detalles)
+        res = gmaps.places_nearby(
             location=(lat_centro, lon_centro),
             keyword=palabra_clave,
-            radius=2000
+            radius=2000,
+            open_now=False # Cambiar a True si solo quieres abiertos
         )
         
-        lugares = places_result.get('results', [])
-        if not lugares: return None, f"No vi {palabra_clave} en {ciudad}."
+        lugares = res.get('results', [])
+        if not lugares: return None, f"No encontré {palabra_clave}."
 
-        # C. Crear DataFrame (Latitude/Longitude es OBLIGATORIO para st.map)
-        data = []
+        # C. Extraer DATOS COMPLETOS (Nombre, Dirección, Rating, ID)
+        data_completa = []
         for l in lugares:
-            data.append({
-                'latitude': float(l['geometry']['location']['lat']),
-                'longitude': float(l['geometry']['location']['lng'])
+            lat = l['geometry']['location']['lat']
+            lng = l['geometry']['location']['lng']
+            nombre = l.get('name', 'Sin nombre')
+            direccion = l.get('vicinity', 'Dirección desconocida')
+            rating = l.get('rating', 'N/A')
+            place_id = l.get('place_id') # Clave para el enlace de "Cómo llegar"
+            
+            data_completa.append({
+                'latitude': float(lat),
+                'longitude': float(lng),
+                'name': nombre,
+                'address': direccion,
+                'rating': rating,
+                'place_id': place_id
             })
             
-        return pd.DataFrame(data), f"✅ Encontré {len(data)} {palabra_clave} en {ciudad}."
+        return pd.DataFrame(data_completa), f"✅ Encontré {len(data_completa)} {palabra_clave}."
 
     except Exception as e:
-        return None, f"Error Google: {str(e)}"
+        return None, f"Error: {str(e)}"
 
-# --- 3. RENDERIZADO (LA CLAVE ESTÁ AQUÍ) ---
+# --- 3. RENDERIZADO INTERACTIVO ---
 def renderizar_sidebar():
-    st.subheader("📍 Mapa en Vivo")
+    st.subheader("📍 Mapa Inteligente")
     
-    # Memoria del mapa
     if "mapa_data" not in st.session_state:
         st.session_state.mapa_data = None
 
     ciudad = st.text_input("Ciudad:", "Bogota")
-    tipo = st.selectbox("Buscar:", ["Farmacias", "Hospitales", "Parques", "Gimnasios"])
+    tipo = st.selectbox("Buscar:", ["Farmacias", "Hospitales", "Parques", "Gimnasios", "Restaurantes"])
     
-    # --- LÓGICA DEL BOTÓN ---
-    if st.button("🔍 VER EN MAPA", use_container_width=True):
-        with st.spinner("Conectando..."):
+    # BOTÓN
+    if st.button("🔍 BUSCAR Y OBTENER RUTA", use_container_width=True):
+        with st.spinner("Localizando sitios..."):
             df, msg = buscar_lugares_google(ciudad, tipo)
-            
             if df is not None:
-                # 1. Guardamos el mapa
                 st.session_state.mapa_data = df
-                # 2. Guardamos el mensaje en el historial del chat DIRECTAMENTE AQUÍ
-                st.session_state.chat_history.append(AIMessage(content=f"[MAPA]: {msg}"))
+                st.session_state.chat_history.append(AIMessage(content=f"[MAPA]: {msg} (Ver detalles en panel lateral)"))
                 st.success(msg)
             else:
                 st.error(msg)
     
-    # --- PINTAR EL MAPA (FUERA DEL BOTÓN) ---
-    # Si hay datos en memoria, SE PINTA. No importa si la app se recarga.
+    # --- VISUALIZACIÓN DE RESULTADOS ---
     if st.session_state.mapa_data is not None:
-        st.write("---")
-        st.map(st.session_state.mapa_data, size=20, color='#FF0000') # Puntos rojos grandes
+        df = st.session_state.mapa_data
         
-        if st.button("Limpiar"):
+        # 1. El Mapa Visual (Puntos)
+        st.map(df, size=20, color='#0044ff') 
+
+        st.divider()
+        st.caption(f"Resultados detallados ({len(df)}):")
+
+        # 2. LISTA INTERACTIVA (Aquí está la magia)
+        # Mostramos los primeros 5 para no saturar, o todos con scroll
+        for index, row in df.iterrows():
+            with st.expander(f"📍 {row['name']} ({row['rating']}⭐)"):
+                st.write(f"🏠 **Dirección:** {row['address']}")
+                
+                # CREAR ENLACE "CÓMO LLEGAR" DE GOOGLE
+                # Este enlace abre la app de Google Maps directamente con la ruta
+                link_google = f"https://www.google.com/maps/dir/?api=1&destination={row['name'].replace(' ', '+')}&destination_place_id={row['place_id']}"
+                
+                st.markdown(f"[🚗 **Ir ahora (Google Maps)**]({link_google})")
+        
+        if st.button("Limpiar Resultados"):
             st.session_state.mapa_data = None
             st.rerun()
