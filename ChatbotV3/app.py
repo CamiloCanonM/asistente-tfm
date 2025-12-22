@@ -295,10 +295,10 @@ with st.sidebar:
 # --- 1. INTEGRACIÓN SOCIAL VIEW ---
     resultado_mapa = social_view.renderizar_sidebar()
     
-    # Si el mapa devuelve información, la inyectamos en la memoria del chat
     if resultado_mapa:
+        # Añadimos el mensaje al chat
         st.session_state.chat_history.append(AIMessage(content=f"[SISTEMA MAPAS]: {resultado_mapa}"))
-        st.rerun()
+        # NO hacemos st.rerun() aquí inmediatamente para dejar que el mapa se pinte primero
         
     st.divider()    
     
@@ -437,6 +437,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
