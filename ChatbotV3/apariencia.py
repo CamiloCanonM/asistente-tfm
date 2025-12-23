@@ -68,15 +68,14 @@ def cargar_estilos_css():
         </style>
     """, unsafe_allow_html=True)
 
+
 def mostrar_header():
-    """Muestra el logo centrado y con tamaño controlado"""
     ruta_logo = os.path.join(os.path.dirname(__file__), "logo.png")
     
-    # Usamos 3 columnas: [Espacio, LOGO, Espacio]
-    # El [1, 1, 1] significa que el logo ocupará el 50% del ancho central
-    c1, c2, c3 = st.columns([1, 2, 1]) 
+    # CENTRADO DEL LOGO: Usamos 3 columnas para que no ocupe todo el ancho
+    c1, c2, c3 = st.columns([1, 1, 1])
     
-    with c2:
+    with c2: # Ponemos la imagen solo en la columna del medio
         if os.path.exists(ruta_logo):
             st.image(ruta_logo, use_container_width=True)
         else:
