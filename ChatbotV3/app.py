@@ -377,29 +377,49 @@ with st.sidebar:
             st.warning("No se pudo conectar con Google Sheets.")
 
 # --- ZONA DE CHAT (CENTRAL) ---
+
+# ==========================================
+# 1. PREPARACIÓN (Variables y Estado)
+# ==========================================
+# Inicializamos variables críticas para evitar errores (AttributeError)
+if "mostrar_camara" not in st.session_state:
+    st.session_state.mostrar_camara = False
+if "ultimo_audio_id" not in st.session_state:
+    st.session_state.ultimo_audio_id = None
+
+# Variables temporales para esta vuelta del bucle
+imagen_capturada = None
+prompt_usuario = None
+es_vision = False
+respuesta_ia = None
+responder_con_voz = False
+
+
+# ==========================================
+# 2. MOSTRAR HISTORIAL DE CHAT
+# ==========================================
 for msg in st.session_state.chat_history:
     st.chat_message(msg.type).write(msg.content)
 
-st.write("") # Espacio
+st.write("") # Espacio visual
 
-# 1. EVITAR EL ERROR: Inicializamos la variable vacía al principio
-imagen_capturada = None 
 
-# 2. BOTONES DE ACCIÓN (Centrados y Anchos)
-st.write("---")
-# Columnas: Margen | Botón Cámara | Botón Hablar | Margen
+# ==========================================
+# 3. BARRA DE HERRAMIENTAS (Botones)
+# ==========================================
+st.write("---") 
+
+# Definimos las columnas
 c1, col_camara, col_mic, c4 = st.columns([1, 2, 2, 1], gap="medium")
 
-# 2. Botón CÁMARA
+# --- BOTÓN CÁMARA ---
 with col_camara:
     if st.button("📷 Cámara", use_container_width=True, key="btn_cam"):
-        # Cambiar estado de la cámara
-        if "mostrar_camara" not in st.session_state:
-            st.session_state.mostrar_camara = False
         st.session_state.mostrar_camara = not st.session_state.mostrar_camara
 
-# 3. Botón MICROFONO (Aquí estaba el error)
-with col_mic:  # <--- AQUÍ FALTABA LA "w" (antes decía "ith")
+# --- BOTÓN MICRÓFONO ---
+with col_mic:
+    # Capturamos el audio aquí. NO lo borraremos después.
     audio_data = mic_recorder(
         start_prompt="🎙️ Hablar",
         stop_prompt="⏹️ Enviar",
@@ -407,148 +427,108 @@ with col_mic:  # <--- AQUÍ FALTABA LA "w" (antes decía "ith")
         key="grabadora"
     )
 
-        
-# 3. ÁREA DE CÁMARA (Se muestra solo si el interruptor está encendido)
+# ==========================================
+# 4. ÁREA DE INPUTS (Cámara y Texto)
+# ==========================================
+
+# A. Visualizar Cámara (Si está activa)
 if st.session_state.mostrar_camara:
     st.write("### 📸 Tomar Foto")
-    # Aquí es donde se crea la variable. 
     imagen_capturada = st.camera_input("Enfoca el medicamento", label_visibility="collapsed")
 
-# 4. PROCESAMIENTO (Ahora esto NO dará error porque la variable existe)
-if imagen_capturada:
-    st.success("✅ Imagen capturada correctamente")
-    # Aquí iría tu código para analizar la imagen
-
-# 5. CAJA DE TEXTO (CHAT INPUT)
-
-# Esto dibuja la barrita para escribir abajo del todo
+# B. Caja de Texto (Siempre visible al final)
 texto_input = st.chat_input("Escribe aquí para consultar a Kivia...")
 
-# 6. CEREBRO: LÓGICA DE PROCESAMIENTO
 
-# Variables de control para esta vuelta
-prompt_usuario = None
-es_vision = False
-respuesta_ia = None
-responder_con_voz = False
-audio_data = None # (Ponemos esto en None por si no usas audio aún)
-    
+# ==========================================
+# 5. CEREBRO: LÓGICA DE PROCESAMIENTO
+# ==========================================
 
-
-# 1. VISIÓN
+# --- CASO 1: VISIÓN (Prioridad Alta) ---
 if imagen_capturada:
+    st.success("✅ Imagen recibida")
+    # Evitamos procesar la misma foto dos veces
     if "ultima_foto_proc" not in st.session_state: st.session_state.ultima_foto_proc = None
+    
     if imagen_capturada.getvalue() != st.session_state.ultima_foto_proc:
-        prompt_usuario = "📸 [Imagen de cámara]"
-        with st.spinner("👁️ Analizando..."):
-            respuesta_ia = analizar_imagen(imagen_capturada.getvalue())
+        prompt_usuario = "📸 "
         es_vision = True
         st.session_state.ultima_foto_proc = imagen_capturada.getvalue()
+        
+        with st.spinner("👁️ Kivia está analizando tu medicamento..."):
+            # Llama a tu función de visión
+            respuesta_ia = analizar_imagen(imagen_capturada.getvalue())
 
-# 2. AUDIO
+# --- CASO 2: AUDIO (Si no hay foto nueva) ---
 elif audio_data and audio_data['id'] != st.session_state.ultimo_audio_id:
-    texto = transcribir_audio(audio_data['bytes'])
-    if texto:
-        prompt_usuario = texto
-        responder_con_voz = True
-        st.session_state.ultimo_audio_id = audio_data['id']
+    # Verificamos que sea un audio nuevo
+    st.session_state.ultimo_audio_id = audio_data['id']
+    st.info("🎧 Procesando audio...")
+    
+    # Intentamos transcribir
+    try:
+        texto_transcrito = transcribir_audio(audio_data['bytes'])
+        if texto_transcrito:
+            prompt_usuario = texto_transcrito
+            responder_con_voz = True # Si me hablas, te respondo con voz
+            st.success(f"Te escuché: '{texto_transcrito}'")
+    except Exception as e:
+        st.error(f"Error en el audio: {e}")
 
-# 3. TEXTO
+# --- CASO 3: TEXTO (Si escribiste en el chat) ---
 elif texto_input:
     prompt_usuario = texto_input
 
-# PROCESAMIENTO
-if prompt_usuario:
-    st.session_state.chat_history.append(HumanMessage(content=prompt_usuario))
-    if not es_vision: st.chat_message("user").write(f"🗣️ {prompt_usuario}" if responder_con_voz else prompt_usuario)
 
+# ==========================================
+# 6. GENERACIÓN DE RESPUESTA
+# ==========================================
+
+if prompt_usuario:
+    # 1. Guardar mensaje del usuario
+    st.session_state.chat_history.append(HumanMessage(content=prompt_usuario))
+    
+    # 2. Mostrar mensaje en pantalla (si es texto o audio)
+    if not es_vision:
+        icono = "🗣️" if responder_con_voz else "👤"
+        st.chat_message("user").write(f"{icono} {prompt_usuario}")
+
+    # 3. Si no tenemos respuesta aún (es texto/audio), consultamos al RAG
     if not es_vision and not respuesta_ia:
         with st.chat_message("assistant"):
-            with st.spinner("..."):
+            with st.spinner("Kivia está pensando..."):
+                
+                # Análisis de Riesgo
                 riesgo = analizar_riesgo(prompt_usuario)
+                
                 if "PELIGRO" in riesgo:
-                    respuesta_ia = "🚨 EMERGENCIA: Tu seguridad es lo más importante para mí. Por favor, llama al 123 ahora mismo. Respira tranquilo, estoy aquí contigo mientras llega la ayuda."
-                    st.error("Alerta")
+                    respuesta_ia = "🚨 EMERGENCIA: Tu seguridad es lo primero. Llama al 123."
+                    st.error("⚠️ ALERTA DE SEGURIDAD DETECTADA")
                     responder_con_voz = True
                 elif "NEGATIVO" in riesgo:
                     respuesta_ia = responder_rag(f"[TRISTE] {prompt_usuario}", usuario_nombre)
                 else:
                     respuesta_ia = responder_rag(prompt_usuario, usuario_nombre)
 
+    # 4. Mostrar respuesta final y reproducir audio si aplica
     if respuesta_ia:
+        st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
+        
         if not es_vision:
             with st.chat_message("assistant"):
                 st.write(respuesta_ia)
                 if responder_con_voz:
                     audio_out = texto_a_voz(respuesta_ia)
-                    if audio_out: st.audio(audio_out, format="audio/mp3", autoplay=True)
+                    if audio_out: 
+                        st.audio(audio_out, format="audio/mp3", autoplay=True)
         
-        st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
-        if es_vision: st.rerun()
-
-social_view.mostrar_mapa_central()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        # Recargar si fue visión para limpiar la cámara
+        if es_vision: 
+            st.rerun()
+
+# ==========================================
+# 7. MAPA (Al final)
+# ==========================================
+# Verificamos si existe el módulo antes de llamarlo
+if 'social_view' in globals():
+    social_view.mostrar_mapa_central()
