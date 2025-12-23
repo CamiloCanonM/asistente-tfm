@@ -61,7 +61,7 @@ def buscar_lugares_google(ciudad, palabra_clave, lat_gps=None, lon_gps=None):
 # 2. SOLO CONTROLES (Para la Barra Lateral)
 # ==========================================
 def renderizar_sidebar():
-    st.subheader("⚙️ Configuración Mapa")
+    st.subheader("🌎 Modulo de Georreferenciación")
     if "mapa_data" not in st.session_state: st.session_state.mapa_data = None
     if "lugar_seleccionado_id" not in st.session_state: st.session_state.lugar_seleccionado_id = None
 
