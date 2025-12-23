@@ -10,80 +10,70 @@ def cargar_estilos_css():
             font-family: 'Roboto', sans-serif; 
         }
         
-        /* 1. FONDO GENERAL */
+        /* 1. FONDO GENERAL DE LA APP */
         .stApp { 
             background-color: #F8F9FA; 
         }
 
         /* =============================================
-           2. FIX RADICAL PARA SIDEBAR (BARRA IZQUIERDA)
+           2. FORZAR CAJAS BLANCAS (INPUTS Y CHAT)
            ============================================= */
-        /* Forzar fondo blanco en la barra lateral */
+        
+        /* Regla Maestra: Cualquier caja de texto (Input o Textarea) */
+        input[type="text"], textarea, [data-baseweb="input"], [data-baseweb="base-input"] {
+            background-color: #ffffff !important; /* Fondo BLANCO puro */
+            color: #000000 !important;            /* Letra NEGRA pura */
+            -webkit-text-fill-color: #000000 !important; /* Fix para iPhone/Android */
+            caret-color: #000000 !important;      /* Cursor negro */
+        }
+
+        /* Específico para la caja del CHAT (Abajo) */
+        [data-testid="stChatInput"] {
+            background-color: #ffffff !important;
+            border-radius: 20px !important;
+            border: 1px solid #cccccc !important;
+        }
+        
+        [data-testid="stChatInput"] textarea {
+            background-color: transparent !important; /* Para que tome el blanco del contenedor */
+        }
+
+        /* Específico para las cajas del SIDEBAR (Qué buscas, Ciudad) */
+        [data-testid="stSidebar"] [data-baseweb="input"] {
+            background-color: #ffffff !important;
+            border: 1px solid #aaaaaa !important;
+        }
+
+        /* Placeholder (El texto gris de ayuda "Escribe aquí...") */
+        ::placeholder, [data-testid="stChatInput"] textarea::placeholder {
+            color: #555555 !important;
+            opacity: 1 !important;
+            -webkit-text-fill-color: #555555 !important;
+        }
+
+        /* =============================================
+           3. RESTO DEL DISEÑO (SIDEBAR Y BOTONES)
+           ============================================= */
+        
+        /* Fondo Sidebar Blanco */
         [data-testid="stSidebar"] { 
             background-color: #ffffff !important; 
             border-right: 1px solid #e0e0e0; 
         }
 
-        /* FORZAR COLOR NEGRO en todos los textos de la barra lateral */
-        [data-testid="stSidebar"] h1, 
-        [data-testid="stSidebar"] h2, 
-        [data-testid="stSidebar"] h3, 
-        [data-testid="stSidebar"] p, 
-        [data-testid="stSidebar"] label, 
-        [data-testid="stSidebar"] span,
-        [data-testid="stSidebar"] div {
-            color: #262730 !important; /* Gris muy oscuro casi negro */
+        /* Textos del Sidebar Negros */
+        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {
+            color: #262730 !important;
         }
 
-        /* Inputs (Cajas de texto) dentro del Sidebar */
-        [data-testid="stSidebar"] input {
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-        }
-
-        /* Fondo de las cajas de texto y selectores del Sidebar */
-        [data-testid="stSidebar"] div[data-baseweb="input"],
-        [data-testid="stSidebar"] div[data-baseweb="select"] > div {
-            background-color: #ffffff !important;
-            border-color: #cccccc !important;
-            color: #000000 !important;
-        }
-
-        /* =============================================
-           3. FIX GENERAL PARA MÓVILES (INPUTS)
-           ============================================= */
-        div[data-baseweb="input"] {
-            background-color: #ffffff !important;
-            border: 1px solid #ced4da !important;
-            color: #000000 !important;
-        }
-        
-        input[type="text"], textarea {
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-            caret-color: #000000 !important;
-        }
-        
-        ::placeholder {
-            color: #666666 !important;
-            opacity: 1 !important;
-        }
-        
-        /* Etiquetas generales */
-        label[data-testid="stLabel"], .stMarkdown p {
-            color: #31333F !important;
-        }
-
-        /* =============================================
-           4. BOTONES PERSONALIZADOS
-           ============================================= */
+        /* Botones Morados */
         div.stButton > button, [data-testid="stFileUploader"] button { 
             background: linear-gradient(90deg, #4A90E2 0%, #9013FE 100%) !important;
             color: white !important;
             border: none !important;
             border-radius: 15px !important;
             padding: 8px 20px !important;
-            font-weight: 500 !important;
         }
         
         div.stButton > button:hover {
