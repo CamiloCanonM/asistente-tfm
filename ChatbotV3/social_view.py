@@ -75,7 +75,7 @@ def buscar_lugares_google(ciudad, palabra_clave, lat_gps=None, lon_gps=None):
 # 2. RENDERIZADO BARRA LATERAL (CONTROLES)
 # ==========================================
 def renderizar_sidebar():
-    st.subheader("⚙️ Configuración Mapa")
+    st.subheader(" 🌎 Modulo de Georreferenciación")
     if "mapa_data" not in st.session_state: st.session_state.mapa_data = None
     if "lugar_seleccionado_id" not in st.session_state: st.session_state.lugar_seleccionado_id = None
 
@@ -96,7 +96,7 @@ def renderizar_sidebar():
     
     ciudad = st.text_input("Ciudad:", "Bogota") if not usar_gps else ""
 
-    if st.button("🔍 BUSCAR (Ver en Centro)"):
+    if st.button("🔍 BUSCAR "):
         if usar_gps and not lat:
             st.error("Esperando señal GPS...")
         else:
@@ -123,7 +123,7 @@ def mostrar_mapa_central():
         
         # Resaltar selección
         if sid:
-            df_show.loc[df_show['place_id'] == sid, ['color', 'size']] = ['#00FF00', 100]
+            df_show.loc[df_show['place_id'] == sid, ['color', 'size']] = ['#00FF00', 80 ]
 
         # MAPA
         st.map(df_show, color='color', size='size') 
