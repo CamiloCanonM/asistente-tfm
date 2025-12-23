@@ -299,9 +299,7 @@ with st.sidebar:
     # Solo llamamos a la función. Ella se encarga de todo.
     
     st.divider()
-
     
-social_view.mostrar_mapa_central()
     
     # ---------------------------------------------------------
     #  ZONA DE ARCHIVOS
@@ -438,6 +436,9 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
+social_view.mostrar_mapa_central()
+
 
 
 
