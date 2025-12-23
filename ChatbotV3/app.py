@@ -307,9 +307,7 @@ with st.sidebar:
     # 1. MOSTRAR EL GESTOR DE ARCHIVOS (VISUAL)
     # Esto muestra los botones y guarda los archivos en la carpeta
     docs_view.renderizar_documentos()
-
-    # 2. PUENTE DE MEMORIA (LÓGICA)
-    # Esto revisa la carpeta y se la "da de comer" a la IA automáticamente
+    # 2. PUENTE DE MEMORIA (CORREGIDO)
     CARPETA_DOCS = "base_conocimiento"
     
     # Inicializamos la memoria de qué archivos ya leyó la IA
@@ -325,18 +323,25 @@ with st.sidebar:
                 
                 ruta_completa = os.path.join(CARPETA_DOCS, nombre_archivo)
                 
-                # Simulamos que es un archivo subido para que tu función antigua funcione
-                with open(ruta_completa, "rb") as archivo_real:
-                    # Le ponemos el atributo .name para que tu función no falle
-                    archivo_real.name = nombre_archivo 
+                try:
+                    # LEEMOS EL ARCHIVO DEL DISCO
+                    with open(ruta_completa, "rb") as f:
+                        contenido_bytes = f.read()
+                    
+                    # --- EL TRUCO PARA QUE NO DE ERROR ---
+                    # Creamos un archivo "virtual" en memoria que sí permite cambiar el nombre
+                    archivo_simulado = io.BytesIO(contenido_bytes)
+                    archivo_simulado.name = nombre_archivo 
                     
                     with st.spinner(f"🧠 Aprendiendo: {nombre_archivo}..."):
-                        # LLAMAMOS A TU FUNCIÓN ORIGINAL
-                        exito = agregar_archivo_usuario(archivo_real)
+                        # LLAMAMOS A TU FUNCIÓN ORIGINAL CON EL ARCHIVO SIMULADO
+                        exito = agregar_archivo_usuario(archivo_simulado)
                         
                         if exito:
                             st.session_state.archivos_leidos.add(nombre_archivo)
                             st.toast(f"✅ Memoria actualizada con: {nombre_archivo}")
+                except Exception as e:
+                    st.error(f"Error leyendo {nombre_archivo}: {e}")
 
     # Si hubo cambios, actualizamos el buscador
     if len(archivos_en_disco) > 0:
@@ -344,6 +349,8 @@ with st.sidebar:
              st.session_state.retriever = st.session_state.vectorstore.as_retriever()
     
     st.divider()
+
+  
 
     # ---------------------------------------------------------
     # ZONA DE RELOJ INTELIGENTE (DIAGNÓSTICO) ⌚
@@ -465,6 +472,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
