@@ -139,12 +139,12 @@ def mostrar_mapa_central():
                 
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("🎯 Ver", key=f"focus_{i}"):
+                    if st.button("🎯 Ver en el mapa", key=f"focus_{i}"):
                         st.session_state.lugar_seleccionado_id = r['place_id']
                         st.rerun()
                 with c2:
                     link = f"https://www.google.com/maps/search/?api=1&query={r['name'].replace(' ', '+')}&query_place_id={r['place_id']}"
-                    st.link_button("🚗 Ir", link)
+                    st.link_button("🚗 llevame al lugar", link)
 
         if st.button("🗑️ Cerrar Mapa", key="close_map"):
             st.session_state.mapa_data = None
