@@ -65,7 +65,7 @@ def renderizar_sidebar():
     if "mapa_data" not in st.session_state: st.session_state.mapa_data = None
     if "lugar_seleccionado_id" not in st.session_state: st.session_state.lugar_seleccionado_id = None
 
-    tipo = st.selectbox("Buscar:", ["Farmacias", "Hospitales", "Parques", "Gimnasios", "Restaurantes"])
+   tipo = st.text_input("🔍 ¿Qué buscas?", placeholder="Ej: farmacias...")
     usar_gps = st.checkbox("📍 Usar GPS")
     
     lat, lon = None, None
