@@ -8,9 +8,10 @@ def cargar_estilos_css():
         .stApp { background-color: #F8F9FA; }
         [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #e0e0e0; }
 
-        /* 2. ESTILO BOTONES (Incluido Browse Files) */
+        /* 2. ESTILO UNIFICADO: Botones normales, Subir archivo Y BOTONES DE ENLACE (El 'Ir') */
         .stButton > button, 
-        [data-testid="stFileUploader"] button {
+        [data-testid="stFileUploader"] button,
+        [data-testid="stLinkButton"] a {   /* <--- ¡ESTO ES LO NUEVO! */
             background: linear-gradient(45deg, #4A90E2, #9013FE);
             color: white !important;
             border: none;
@@ -19,11 +20,16 @@ def cargar_estilos_css():
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             font-weight: 500;
+            text-decoration: none !important; /* Quita el subrayado del enlace */
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* 3. Hover */
+        /* 3. Hover (Efecto al pasar el mouse) para TODOS */
         .stButton > button:hover, 
-        [data-testid="stFileUploader"] button:hover {
+        [data-testid="stFileUploader"] button:hover,
+        [data-testid="stLinkButton"] a:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0,0,0,0.2);
             color: white !important;
@@ -56,7 +62,7 @@ def cargar_estilos_css():
             background-color: white;
         }
         
-        /* 8. Quitar padding superior excesivo */
+        /* 8. Ajustes de márgenes */
         .block-container {
             padding-top: 1rem;
             padding-bottom: 0rem;
@@ -71,5 +77,4 @@ def mostrar_header():
     if os.path.exists(ruta_logo):
         st.image(ruta_logo, use_container_width=True)
     else:
-        # Un fallback por si no encuentra la imagen
         st.warning("⚠️ No encuentro el archivo logo.png")
