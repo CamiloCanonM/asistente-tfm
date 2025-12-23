@@ -413,6 +413,7 @@ with c_mic:
         stop_prompt="⏹️ Enviar Audio",
         just_once=True,
         key="grabadora"
+    )
         
 # 3. ÁREA DE CÁMARA (Se muestra solo si el interruptor está encendido)
 if st.session_state.mostrar_camara:
@@ -493,6 +494,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
