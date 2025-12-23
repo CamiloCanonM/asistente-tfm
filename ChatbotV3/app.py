@@ -421,6 +421,20 @@ if st.session_state.mostrar_camara:
 if imagen_capturada:
     st.success("✅ Imagen capturada correctamente")
     # Aquí iría tu código para analizar la imagen
+
+# 5. CAJA DE TEXTO (CHAT INPUT)
+
+# Esto dibuja la barrita para escribir abajo del todo
+texto_input = st.chat_input("Escribe aquí para consultar a Kivia...")
+
+# 6. CEREBRO: LÓGICA DE PROCESAMIENTO
+
+# Variables de control para esta vuelta
+prompt_usuario = None
+es_vision = False
+respuesta_ia = None
+responder_con_voz = False
+audio_data = None # (Ponemos esto en None por si no usas audio aún)
     
 
 
@@ -476,6 +490,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
