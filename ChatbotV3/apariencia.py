@@ -1,3 +1,14 @@
+¡Entendido! Lo que pasa es que la barra lateral (Sidebar) es como una "zona independiente" y a veces necesita reglas de estilo propias para imponerse al modo oscuro del móvil.
+
+Vamos a aplicar la "Regla de Oro" para la barra lateral: Forzar que TODO lo que esté ahí dentro sea negro sobre fondo blanco, sin excepciones.
+
+Actualiza tu archivo apariencia.py con este código final. He agregado una sección específica llamada /* FIX RADICAL PARA SIDEBAR */.
+
+📄 Archivo: apariencia.py (Versión Final Móvil)
+Copia y pega esto reemplazando todo lo anterior:
+
+Python
+
 import streamlit as st
 import os
 
@@ -10,47 +21,72 @@ def cargar_estilos_css():
             font-family: 'Roboto', sans-serif; 
         }
         
-        /* Fondo general claro */
+        /* 1. FONDO GENERAL */
         .stApp { 
             background-color: #F8F9FA; 
         }
-        
-        /* Sidebar blanco */
+
+        /* =============================================
+           2. FIX RADICAL PARA SIDEBAR (BARRA IZQUIERDA)
+           ============================================= */
+        /* Forzar fondo blanco en la barra lateral */
         [data-testid="stSidebar"] { 
-            background-color: #ffffff; 
+            background-color: #ffffff !important; 
             border-right: 1px solid #e0e0e0; 
         }
-        
+
+        /* FORZAR COLOR NEGRO en todos los textos de la barra lateral */
+        [data-testid="stSidebar"] h1, 
+        [data-testid="stSidebar"] h2, 
+        [data-testid="stSidebar"] h3, 
+        [data-testid="stSidebar"] p, 
+        [data-testid="stSidebar"] label, 
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] div {
+            color: #262730 !important; /* Gris muy oscuro casi negro */
+        }
+
+        /* Inputs (Cajas de texto) dentro del Sidebar */
+        [data-testid="stSidebar"] input {
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+        }
+
+        /* Fondo de las cajas de texto y selectores del Sidebar */
+        [data-testid="stSidebar"] div[data-baseweb="input"],
+        [data-testid="stSidebar"] div[data-baseweb="select"] > div {
+            background-color: #ffffff !important;
+            border-color: #cccccc !important;
+            color: #000000 !important;
+        }
+
         /* =============================================
-           FIX PARA MÓVILES Y MODO OSCURO (NUEVO)
+           3. FIX GENERAL PARA MÓVILES (INPUTS)
            ============================================= */
-        /* Forzamos que los inputs (cajas de texto) sean blancos con letra negra */
         div[data-baseweb="input"] {
             background-color: #ffffff !important;
             border: 1px solid #ced4da !important;
             color: #000000 !important;
         }
         
-        /* Color del texto dentro del input */
         input[type="text"], textarea {
             color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important; /* Importante para Chrome Móvil */
-            caret-color: #000000 !important; /* Color del cursor */
+            -webkit-text-fill-color: #000000 !important;
+            caret-color: #000000 !important;
         }
         
-        /* Color del texto de ayuda (Placeholder) para que se lea bien */
         ::placeholder {
             color: #666666 !important;
             opacity: 1 !important;
         }
         
-        /* Arreglar etiqueta de los inputs (ej: "¿Qué buscas?") */
+        /* Etiquetas generales */
         label[data-testid="stLabel"], .stMarkdown p {
-            color: #31333F !important; /* Gris oscuro casi negro */
+            color: #31333F !important;
         }
 
         /* =============================================
-           BOTONES PERSONALIZADOS
+           4. BOTONES PERSONALIZADOS
            ============================================= */
         div.stButton > button, [data-testid="stFileUploader"] button { 
             background: linear-gradient(90deg, #4A90E2 0%, #9013FE 100%) !important;
@@ -66,7 +102,6 @@ def cargar_estilos_css():
             box-shadow: 0 6px 12px rgba(144, 19, 254, 0.3) !important;
         }
 
-        /* Ocultar menú default de Streamlit */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         .block-container { padding-top: 2rem; }
