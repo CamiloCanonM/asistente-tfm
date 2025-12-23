@@ -25,7 +25,7 @@ import apariencia
 st.set_page_config(
     page_title="KIVIA.AI",
     page_icon="logo.png", 
-    layout="centered"
+    layout="wide"
 )
 
 # 2. CARGAR LA APARIENCIA
@@ -456,6 +456,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
