@@ -69,17 +69,15 @@ def cargar_estilos_css():
     """, unsafe_allow_html=True)
 
 def mostrar_header():
-    """Muestra el logo o un título estilizado si no hay imagen"""
-    # Busca el archivo 'logo.png' en la misma carpeta donde está este archivo
+    """Muestra el logo centrado y con tamaño controlado"""
     ruta_logo = os.path.join(os.path.dirname(__file__), "logo.png")
     
-    if os.path.exists(ruta_logo):
-        st.image(ruta_logo, use_container_width=True)
-    else:
-        # Título bonito por si no encuentra el archivo de imagen
-        st.markdown("""
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="color: #4A90E2; margin:0;">🧬 KIVIA.AI</h1>
-                <p style="color: #666; margin:0;">Asistente Conversacional Inteligente</p>
-            </div>
-        """, unsafe_allow_html=True)
+    # Usamos 3 columnas: [Espacio, LOGO, Espacio]
+    # El [1, 2, 1] significa que el logo ocupará el 50% del ancho central
+    c1, c2, c3 = st.columns([1, 2, 1]) 
+    
+    with c2:
+        if os.path.exists(ruta_logo):
+            st.image(ruta_logo, use_container_width=True)
+        else:
+            st.markdown("<h1 style='text-align: center; color:#4A90E2;'>🧬 KIVIA.AI</h1>", unsafe_allow_html=True)
