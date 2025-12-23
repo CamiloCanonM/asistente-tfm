@@ -23,8 +23,8 @@ def eliminar_archivo(nombre_archivo):
     os.remove(os.path.join(CARPETA_DOCS, nombre_archivo))
 
 def renderizar_documentos():
-    st.subheader("📂 Biblioteca Inteligente")
-    st.caption("Los archivos que subas aquí quedarán guardados para siempre.")
+    st.subheader("📂 Mis Documentos")
+    st.caption("Los archivos que subas aquí quedarán guardados en la nube.")
 
     # --- ZONA DE SUBIDA ---
     archivo = st.file_uploader("Subir nuevo documento", type=["pdf", "txt", "docx", "csv"])
