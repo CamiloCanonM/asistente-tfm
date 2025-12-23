@@ -388,28 +388,41 @@ st.write("") # Espacio
 
 st.write("---") # Línea divisoria
 
-# --- CORRECCIÓN DE BOTONES ---
-# 1. Creamos 4 columnas para centrar los botones
-#    Las columnas 1 y 4 son márgenes vacíos.
-col_izq, col_camara, col_hablar, col_der = st.columns([1, 2, 2, 1], gap="medium")
+# --- INICIO DEL BLOQUE CORREGIDO EN APP.PY ---
 
-# 2. Botón CÁMARA (Sin flechitas, solo botón)
-with col_camara:
-    # IMPORTANTE: use_container_width=True hace que se vea ancho y bonito
-    click_camara = st.button("📷 Cámara", key="btn_cam", use_container_width=True)
+# 1. EVITAR EL ERROR: Inicializamos la variable vacía al principio
+imagen_capturada = None 
 
-# 3. Botón HABLAR
-with col_hablar:
-    click_hablar = st.button("🎙️ Hablar", key="btn_hab", use_container_width=True)
+# 2. BOTONES DE ACCIÓN (Centrados y Anchos)
+st.write("---")
+# Columnas: Margen | Botón Cámara | Botón Hablar | Margen
+c1, c_cam, c_mic, c4 = st.columns([1, 2, 2, 1], gap="medium")
 
-# 4. LÓGICA (Qué pasa al hacer clic)
-# Esto se abre DEBAJO de los botones, no dentro de ellos
-if click_camara:
-    st.info("Iniciando módulo de visión...")
-    st.camera_input("Tomar foto", label_visibility="collapsed")
+# Usamos Session State para saber si la cámara debe estar abierta o cerrada
+if "mostrar_camara" not in st.session_state:
+    st.session_state.mostrar_camara = False
 
-if click_hablar:
-    st.info("🎙️ Escuchando... habla ahora.")
+with c_cam:
+    # Si tocas el botón, cambiamos el estado (Abierto/Cerrado)
+    if st.button("📷 Cámara", use_container_width=True, key="btn_cam"):
+        st.session_state.mostrar_camara = not st.session_state.mostrar_camara
+
+with c_mic:
+    if st.button("🎙️ Hablar", use_container_width=True, key="btn_mic"):
+        st.info("🎙️ Escuchando... (Simulación)")
+
+# 3. ÁREA DE CÁMARA (Se muestra solo si el interruptor está encendido)
+if st.session_state.mostrar_camara:
+    st.write("### 📸 Tomar Foto")
+    # Aquí es donde se crea la variable. 
+    imagen_capturada = st.camera_input("Enfoca el medicamento", label_visibility="collapsed")
+
+# 4. PROCESAMIENTO (Ahora esto NO dará error porque la variable existe)
+if imagen_capturada:
+    st.success("✅ Imagen capturada correctamente")
+    # Aquí iría tu código para analizar la imagen
+    
+
 
 # 1. VISIÓN
 if imagen_capturada:
@@ -463,6 +476,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
