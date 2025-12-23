@@ -4,67 +4,73 @@ import os
 def cargar_estilos_css():
     st.markdown("""
         <style>
-        /* 1. Fuente y Estructura Base */
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
         
-        html, body, [class*="css"] {
-            font-family: 'Roboto', sans-serif;
+        html, body, [class*="css"] { 
+            font-family: 'Roboto', sans-serif; 
         }
         
-        /* Color de fondo general */
-        .stApp { background-color: #F8F9FA; }
+        /* Fondo general claro */
+        .stApp { 
+            background-color: #F8F9FA; 
+        }
         
-        /* 2. BARRA LATERAL (Sidebar) - Fondo blanco y borde */
+        /* Sidebar blanco */
         [data-testid="stSidebar"] { 
             background-color: #ffffff; 
             border-right: 1px solid #e0e0e0; 
         }
+        
+        /* =============================================
+           FIX PARA MÓVILES Y MODO OSCURO (NUEVO)
+           ============================================= */
+        /* Forzamos que los inputs (cajas de texto) sean blancos con letra negra */
+        div[data-baseweb="input"] {
+            background-color: #ffffff !important;
+            border: 1px solid #ced4da !important;
+            color: #000000 !important;
+        }
+        
+        /* Color del texto dentro del input */
+        input[type="text"], textarea {
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important; /* Importante para Chrome Móvil */
+            caret-color: #000000 !important; /* Color del cursor */
+        }
+        
+        /* Color del texto de ayuda (Placeholder) para que se lea bien */
+        ::placeholder {
+            color: #666666 !important;
+            opacity: 1 !important;
+        }
+        
+        /* Arreglar etiqueta de los inputs (ej: "¿Qué buscas?") */
+        label[data-testid="stLabel"], .stMarkdown p {
+            color: #31333F !important; /* Gris oscuro casi negro */
+        }
 
-        /* 3. BOTONES CON DEGRADADO (ESTILO KIVIA) */
-        /* Esto afecta a: Botones normales, Subir archivo y Enlaces */
-        div.stButton > button, 
-        [data-testid="stFileUploader"] button,
-        [data-testid="stLinkButton"] a { 
+        /* =============================================
+           BOTONES PERSONALIZADOS
+           ============================================= */
+        div.stButton > button, [data-testid="stFileUploader"] button { 
             background: linear-gradient(90deg, #4A90E2 0%, #9013FE 100%) !important;
             color: white !important;
             border: none !important;
             border-radius: 15px !important;
             padding: 8px 20px !important;
-            transition: all 0.3s ease !important;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
             font-weight: 500 !important;
-            text-decoration: none !important;
         }
-
-        /* Efecto al pasar el mouse (Hover) */
-        div.stButton > button:hover, 
-        [data-testid="stFileUploader"] button:hover {
+        
+        div.stButton > button:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(144, 19, 254, 0.3) !important;
-            background: linear-gradient(90deg, #357ABD 0%, #7B0FCC 100%) !important;
-            color: white !important;
         }
 
-        /* 4. Inputs (Cajas de texto) */
-        .stTextInput > div > div > input {
-            border-radius: 10px;
-            border: 1px solid #E0E0E0;
-            padding: 10px;
-        }
-        
-        /* 5. Mensajes de Éxito (Caja verde del mapa) */
-        .stSuccess {
-            background-color: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 10px;
-        }
-
-        /* 6. Ocultar elementos por defecto de Streamlit (Menu y Footer) */
+        /* Ocultar menú default de Streamlit */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        
-        /* Ajustar margen superior */
         .block-container { padding-top: 2rem; }
+        
         </style>
     """, unsafe_allow_html=True)
 
