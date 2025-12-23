@@ -399,7 +399,7 @@ with c_cam:
     if st.button("📷 Cámara", use_container_width=True, key="btn_cam"):
         st.session_state.mostrar_camara = not st.session_state.mostrar_camara
 
-ith col_mic:
+with col_mic:
     audio_data = mic_recorder(start_prompt="🎙️ Hablar", stop_prompt="⏹️ Fin", key='recorder')
 
         
@@ -482,6 +482,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
