@@ -18,6 +18,60 @@ import os
 import social_view
 import docs_view
 
+def cargar_estilos_css():
+    st.markdown("""
+        <style>
+        /* 1. Fondo general más limpio (opcional) */
+        .stApp {
+            background-color: #F8F9FA; 
+        }
+        
+        /* 2. Estilizar la barra lateral */
+        [data-testid="stSidebar"] {
+            background-color: #ffffff;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        /* 3. Botones con gradiente y sombra (Estilo 'Premium') */
+        .stButton>button {
+            background: linear-gradient(45deg, #4A90E2, #9013FE);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 24px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .stButton>button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+            color: white;
+        }
+
+        /* 4. Inputs (Cajas de texto) más modernas */
+        .stTextInput>div>div>input {
+            border-radius: 10px;
+            border: 1px solid #E0E0E0;
+            padding: 10px;
+        }
+        
+        /* 5. Ocultar el menú de hamburguesa y footer de Streamlit (opcional) */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        
+        /* 6. Mejorar las tarjetas de métricas o mensajes */
+        div[data-testid="stExpander"] {
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-radius: 10px;
+            background-color: white;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+
+cargar_estilos_css()
+
 # --- 1. CONFIGURACIÓN 
 
 st.set_page_config(
@@ -472,6 +526,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
