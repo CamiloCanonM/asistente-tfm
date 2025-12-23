@@ -408,9 +408,12 @@ with c_cam:
         st.session_state.mostrar_camara = not st.session_state.mostrar_camara
 
 with c_mic:
-    if st.button("🎙️ Hablar", use_container_width=True, key="btn_mic"):
-        st.info("🎙️ Escuchando... (Simulación)")
-
+    audio_data = mic_recorder(
+        start_prompt="🎙️ Hablar",
+        stop_prompt="⏹️ Enviar Audio",
+        just_once=True,
+        key="grabadora"
+        
 # 3. ÁREA DE CÁMARA (Se muestra solo si el interruptor está encendido)
 if st.session_state.mostrar_camara:
     st.write("### 📸 Tomar Foto")
@@ -490,6 +493,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
