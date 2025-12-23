@@ -388,19 +388,24 @@ imagen_capturada = None
 # 2. BOTONES DE ACCIÓN (Centrados y Anchos)
 st.write("---")
 # Columnas: Margen | Botón Cámara | Botón Hablar | Margen
-c1, c_cam, c_mic, c4 = st.columns([1, 2, 2, 1], gap="medium")
+c1, col_camara, col_mic, c4 = st.columns([1, 2, 2, 1], gap="medium")
 
-# Usamos Session State para saber si la cámara debe estar abierta o cerrada
-if "mostrar_camara" not in st.session_state:
-    st.session_state.mostrar_camara = False
-
-with c_cam:
-    # Si tocas el botón, cambiamos el estado (Abierto/Cerrado)
+# 2. Botón CÁMARA
+with col_camara:
     if st.button("📷 Cámara", use_container_width=True, key="btn_cam"):
+        # Cambiar estado de la cámara
+        if "mostrar_camara" not in st.session_state:
+            st.session_state.mostrar_camara = False
         st.session_state.mostrar_camara = not st.session_state.mostrar_camara
 
-with col_mic:
-    audio_data = mic_recorder(start_prompt="🎙️ Hablar", stop_prompt="⏹️ Fin", key='recorder')
+# 3. Botón MICROFONO (Aquí estaba el error)
+with col_mic:  # <--- AQUÍ FALTABA LA "w" (antes decía "ith")
+    audio_data = mic_recorder(
+        start_prompt="🎙️ Hablar",
+        stop_prompt="⏹️ Enviar",
+        just_once=True,
+        key="grabadora"
+    )
 
         
 # 3. ÁREA DE CÁMARA (Se muestra solo si el interruptor está encendido)
@@ -482,6 +487,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
