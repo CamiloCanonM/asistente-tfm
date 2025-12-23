@@ -184,4 +184,42 @@ def renderizar_sidebar():
         # Lógica de Resaltado (Verde)
         if selected_id:
             mask = df_display['place_id'] == selected_id
-            df_display.loc[mask,
+            df_display.loc[mask, 'color'] = '#00FF00' # Verde
+            df_display.loc[mask, 'size'] = 80         # Grande (Equilibrado)
+            
+            st.info("🎯 Destino seleccionado en VERDE.")
+            
+            if st.button("🔙 Mapa normal", use_container_width=True):
+                st.session_state.lugar_seleccionado_id = None
+                st.rerun()
+
+        st.map(df_display, color='color', size='size', use_container_width=True)
+
+        # 2. LISTA LATERAL (Ordenada)
+        st.caption("Resultados completos:")
+        
+        # Filtrar usuario y ordenar
+        df_lista = st.session_state.mapa_data[st.session_state.mapa_data['place_id'] != "USER_LOC"]
+        df_lista = df_lista.sort_values(by='distancia', ascending=True).reset_index(drop=True)
+
+        for i, row in df_lista.iterrows():
+            distancia_str = f"{row['distancia']} km"
+            icono = "🥇" if i == 0 else "📍" # Medalla al más cercano
+            
+            with st.expander(f"{icono} {row['name']} ({distancia_str})"):
+                st.write(f"🏠 {row['address']}")
+                
+                # Botón de Foco en Mapa
+                if st.button("🎯 SEÑALAR", key=f"btn_focus_{i}", use_container_width=True):
+                    st.session_state.lugar_seleccionado_id = row['place_id']
+                    st.rerun()
+
+                # Botón Externo
+                link = f"https://www.google.com/maps/search/?api=1&query={row['name'].replace(' ', '+')}&query_place_id={row['place_id']}"
+                st.link_button("🚗 IR AHORA", link, use_container_width=True)
+
+        st.divider()
+        if st.button("🗑️ Limpiar"):
+            st.session_state.mapa_data = None
+            st.session_state.lugar_seleccionado_id = None
+            st.rerun()
