@@ -21,45 +21,57 @@ import docs_view
 def cargar_estilos_css():
     st.markdown("""
         <style>
-        /* 1. Fondo general más limpio (opcional) */
+        /* 1. Fondo y estructura general */
         .stApp {
-            background-color: #F8F9FA; 
+            background-color: #F8F9FA;
         }
-        
-        /* 2. Estilizar la barra lateral */
         [data-testid="stSidebar"] {
             background-color: #ffffff;
             border-right: 1px solid #e0e0e0;
         }
 
-        /* 3. Botones con gradiente y sombra (Estilo 'Premium') */
-        .stButton>button {
+        /* 2. ESTILO UNIFICADO PARA TODOS LOS BOTONES (Incluido el Browse Files) */
+        .stButton > button, 
+        [data-testid="stFileUploader"] button {
             background: linear-gradient(45deg, #4A90E2, #9013FE);
-            color: white;
+            color: white !important; /* Forza el texto blanco */
             border: none;
             border-radius: 20px;
-            padding: 10px 24px;
+            padding: 8px 20px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-weight: 500;
         }
-        .stButton>button:hover {
+
+        /* 3. Efecto Hover (Al pasar el mouse) para ambos */
+        .stButton > button:hover, 
+        [data-testid="stFileUploader"] button:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-            color: white;
+            color: white !important;
+            border: none;
         }
 
         /* 4. Inputs (Cajas de texto) más modernas */
-        .stTextInput>div>div>input {
+        .stTextInput > div > div > input {
             border-radius: 10px;
             border: 1px solid #E0E0E0;
             padding: 10px;
         }
         
-        /* 5. Ocultar el menú de hamburguesa y footer de Streamlit (opcional) */
+        /* 5. Ajuste visual para el icono de carga (cuando sube el archivo) */
+        [data-testid="stFileUploader"] section {
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            border: 1px dashed #4A90E2;
+        }
+
+        /* 6. Ocultar elementos innecesarios */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         
-        /* 6. Mejorar las tarjetas de métricas o mensajes */
+        /* 7. Tarjetas limpias */
         div[data-testid="stExpander"] {
             border: none;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
@@ -526,6 +538,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
