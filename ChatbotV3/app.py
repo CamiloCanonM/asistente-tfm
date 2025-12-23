@@ -381,28 +381,35 @@ for msg in st.session_state.chat_history:
     st.chat_message(msg.type).write(msg.content)
 
 st.write("") # Espacio
-st.write("") # Espacio
+
 
 # --- BARRA DE HERRAMIENTAS---
-st.divider()
-col_cam, col_mic, col_txt = st.columns([1, 1, 0.1])
 
-with col_cam:
-    # Popover es más limpio que expander
-    with st.popover("📸 Cámara", use_container_width=True):
-        imagen_capturada = st.camera_input("Foto", label_visibility="collapsed")
 
-with col_mic:
-    audio_data = mic_recorder(start_prompt="🎙️ Hablar", stop_prompt="⏹️ Fin", key='recorder')
+st.write("---") # Línea divisoria
 
-# INPUT TEXTO
-texto_input = st.chat_input(f"Escribe aquí...")
+# --- CORRECCIÓN DE BOTONES ---
+# 1. Creamos 4 columnas para centrar los botones
+#    Las columnas 1 y 4 son márgenes vacíos.
+col_izq, col_camara, col_hablar, col_der = st.columns([1, 2, 2, 1], gap="medium")
 
-# --- LÓGICA ---
-prompt_usuario = None
-respuesta_ia = None
-es_vision = False
-responder_con_voz = False
+# 2. Botón CÁMARA (Sin flechitas, solo botón)
+with col_camara:
+    # IMPORTANTE: use_container_width=True hace que se vea ancho y bonito
+    click_camara = st.button("📷 Cámara", key="btn_cam", use_container_width=True)
+
+# 3. Botón HABLAR
+with col_hablar:
+    click_hablar = st.button("🎙️ Hablar", key="btn_hab", use_container_width=True)
+
+# 4. LÓGICA (Qué pasa al hacer clic)
+# Esto se abre DEBAJO de los botones, no dentro de ellos
+if click_camara:
+    st.info("Iniciando módulo de visión...")
+    st.camera_input("Tomar foto", label_visibility="collapsed")
+
+if click_hablar:
+    st.info("🎙️ Escuchando... habla ahora.")
 
 # 1. VISIÓN
 if imagen_capturada:
@@ -456,6 +463,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
