@@ -295,8 +295,9 @@ with st.sidebar:
     # ---------------------------------------------------------
     # 1. INTEGRACIÓN SOCIAL VIEW (MAPAS)
     # ---------------------------------------------------------
-    # Solo llamamos a la función. Ella se encarga de todo.
     social_view.renderizar_sidebar()
+    # Solo llamamos a la función. Ella se encarga de todo.
+    social_view.mostrar_mapa_central()
     
     st.divider()
     
@@ -435,6 +436,7 @@ if prompt_usuario:
         
         st.session_state.chat_history.append(AIMessage(content=respuesta_ia))
         if es_vision: st.rerun()
+
 
 
 
