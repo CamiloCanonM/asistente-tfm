@@ -27,7 +27,7 @@ def renderizar_documentos():
     st.caption("Los archivos que subas aquí quedarán guardados en la nube.")
 
     # --- ZONA DE SUBIDA ---
-    archivo = st.file_uploader("Subir nuevo documento", type=["pdf", "txt", "docx", "csv"])
+    archivo = st.file_uploader("Subir nuevo documento", type=["pdf", "txt", "docx", "csv", "xlsx"])
     
     if archivo is not None:
         if guardar_archivo(archivo):
