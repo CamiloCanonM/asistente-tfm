@@ -70,6 +70,7 @@ def cargar_estilos_css():
 
 def mostrar_header():
     """Muestra el logo o un título estilizado si no hay imagen"""
+    # Busca el archivo 'logo.png' en la misma carpeta donde está este archivo
     ruta_logo = os.path.join(os.path.dirname(__file__), "logo.png")
     
     if os.path.exists(ruta_logo):
