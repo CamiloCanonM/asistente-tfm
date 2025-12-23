@@ -1,14 +1,3 @@
-¡Entendido! Lo que pasa es que la barra lateral (Sidebar) es como una "zona independiente" y a veces necesita reglas de estilo propias para imponerse al modo oscuro del móvil.
-
-Vamos a aplicar la "Regla de Oro" para la barra lateral: Forzar que TODO lo que esté ahí dentro sea negro sobre fondo blanco, sin excepciones.
-
-Actualiza tu archivo apariencia.py con este código final. He agregado una sección específica llamada /* FIX RADICAL PARA SIDEBAR */.
-
-📄 Archivo: apariencia.py (Versión Final Móvil)
-Copia y pega esto reemplazando todo lo anterior:
-
-Python
-
 import streamlit as st
 import os
 
