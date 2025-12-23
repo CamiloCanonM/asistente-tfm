@@ -76,7 +76,7 @@ def renderizar_sidebar():
     ciudad = st.text_input("Ciudad:", "Bogota") if not usar_gps else ""
 
     # ESTE BOTON SOLO GUARDA LOS DATOS, NO PINTA EL MAPA AQUI
-    if st.button("🔍 BUSCAR (Ver en Centro)", use_container_width=True):
+    if st.button("🔍 BUSCAR ", use_container_width=True):
         if usar_gps and not lat:
             st.error("Esperando GPS...")
         else:
