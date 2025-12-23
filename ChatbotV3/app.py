@@ -16,6 +16,7 @@ from openai import OpenAI
 import streamlit as st
 import os 
 import social_view
+import docs_view
 
 # --- 1. CONFIGURACIÓN 
 
@@ -303,17 +304,44 @@ with st.sidebar:
     # ---------------------------------------------------------
     #  ZONA DE ARCHIVOS
     # ---------------------------------------------------------
-    st.subheader("📂 Mis Documentos")
-    archivo_subido = st.file_uploader("Subir Receta o PDF", type=["pdf", "txt", "png", "jpg","xlsx"])
+    # 1. MOSTRAR EL GESTOR DE ARCHIVOS (VISUAL)
+    # Esto muestra los botones y guarda los archivos en la carpeta
+    docs_view.renderizar_documentos()
+
+    # 2. PUENTE DE MEMORIA (LÓGICA)
+    # Esto revisa la carpeta y se la "da de comer" a la IA automáticamente
+    CARPETA_DOCS = "base_conocimiento"
     
-    if archivo_subido:
-        # Verificamos si es un archivo nuevo para no procesarlo 2 veces
-        if "ultimo_archivo" not in st.session_state or st.session_state.ultimo_archivo != archivo_subido.name:
-            if agregar_archivo_usuario(archivo_subido):
-                st.success(f"✅ {archivo_subido.name} guardado en memoria.")
-                st.session_state.ultimo_archivo = archivo_subido.name
-                # Recargamos el buscador para que incluya este archivo nuevo
-                st.session_state.retriever = st.session_state.vectorstore.as_retriever()
+    # Inicializamos la memoria de qué archivos ya leyó la IA
+    if "archivos_leidos" not in st.session_state:
+        st.session_state.archivos_leidos = set()
+
+    if os.path.exists(CARPETA_DOCS):
+        archivos_en_disco = os.listdir(CARPETA_DOCS)
+        
+        for nombre_archivo in archivos_en_disco:
+            # Si hay un archivo en la carpeta que la IA no ha leído aún...
+            if nombre_archivo not in st.session_state.archivos_leidos:
+                
+                ruta_completa = os.path.join(CARPETA_DOCS, nombre_archivo)
+                
+                # Simulamos que es un archivo subido para que tu función antigua funcione
+                with open(ruta_completa, "rb") as archivo_real:
+                    # Le ponemos el atributo .name para que tu función no falle
+                    archivo_real.name = nombre_archivo 
+                    
+                    with st.spinner(f"🧠 Aprendiendo: {nombre_archivo}..."):
+                        # LLAMAMOS A TU FUNCIÓN ORIGINAL
+                        exito = agregar_archivo_usuario(archivo_real)
+                        
+                        if exito:
+                            st.session_state.archivos_leidos.add(nombre_archivo)
+                            st.toast(f"✅ Memoria actualizada con: {nombre_archivo}")
+
+    # Si hubo cambios, actualizamos el buscador
+    if len(archivos_en_disco) > 0:
+        if "vectorstore" in st.session_state:
+             st.session_state.retriever = st.session_state.vectorstore.as_retriever()
     
     st.divider()
 
@@ -437,6 +465,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
