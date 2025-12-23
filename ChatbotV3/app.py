@@ -290,8 +290,7 @@ st.markdown(f"**Hola, {usuario_nombre}** 👋")
 # --- BARRA LATERAL 
 
 with st.sidebar:
-    st.header("⚙️ Panel de Control")
-    
+        
     # ---------------------------------------------------------
     # 1. INTEGRACIÓN SOCIAL VIEW (MAPAS)
     # ---------------------------------------------------------
@@ -438,6 +437,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
