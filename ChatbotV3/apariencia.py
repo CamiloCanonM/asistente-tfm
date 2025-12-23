@@ -1,7 +1,12 @@
 import streamlit as st
 import os
 
-
+# 1. CONFIGURACIÓN DE PÁGINA
+st.set_page_config(
+    page_title="KIVIA.AI",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # 2. ESTILOS CSS (DISEÑO)
 def cargar_estilos():
