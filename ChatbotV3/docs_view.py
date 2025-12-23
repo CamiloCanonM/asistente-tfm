@@ -28,11 +28,11 @@ def eliminar_archivo(nombre_archivo):
         st.error(f"Error eliminando: {e}")
 
 def renderizar_documentos():
-    st.subheader("📂 Biblioteca Inteligente")
+    st.subheader("📂 Mis Documentos")
     st.caption("Sube tus PDFs o archivos aquí.")
 
     # --- ZONA DE SUBIDA (CON FIX DE BUCLE INFINITO) ---
-    archivo = st.file_uploader("Subir documento", type=["pdf", "txt", "docx", "csv", "xlsx"])
+    archivo = st.file_uploader("Subir documento", type=["pdf", "txt", "docx", "csv",])
     
     if archivo is not None:
         # Inicializar estado si no existe
