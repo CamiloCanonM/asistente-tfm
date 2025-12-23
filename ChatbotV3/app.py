@@ -388,7 +388,6 @@ st.write("") # Espacio
 
 st.write("---") # Línea divisoria
 
-# --- INICIO DEL BLOQUE CORREGIDO EN APP.PY ---
 
 # 1. EVITAR EL ERROR: Inicializamos la variable vacía al principio
 imagen_capturada = None 
@@ -407,13 +406,9 @@ with c_cam:
     if st.button("📷 Cámara", use_container_width=True, key="btn_cam"):
         st.session_state.mostrar_camara = not st.session_state.mostrar_camara
 
-with c_mic:
-    audio_data = mic_recorder(
-        start_prompt="🎙️ Hablar",
-        stop_prompt="⏹️ Enviar Audio",
-        just_once=True,
-        key="grabadora"
-    )
+ith col_mic:
+    audio_data = mic_recorder(start_prompt="🎙️ Hablar", stop_prompt="⏹️ Fin", key='recorder')
+
         
 # 3. ÁREA DE CÁMARA (Se muestra solo si el interruptor está encendido)
 if st.session_state.mostrar_camara:
@@ -494,6 +489,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
