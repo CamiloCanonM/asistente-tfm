@@ -382,13 +382,6 @@ for msg in st.session_state.chat_history:
 
 st.write("") # Espacio
 
-
-# --- BARRA DE HERRAMIENTAS---
-
-
-st.write("---") # Línea divisoria
-
-
 # 1. EVITAR EL ERROR: Inicializamos la variable vacía al principio
 imagen_capturada = None 
 
@@ -489,6 +482,7 @@ if prompt_usuario:
         if es_vision: st.rerun()
 
 social_view.mostrar_mapa_central()
+
 
 
 
