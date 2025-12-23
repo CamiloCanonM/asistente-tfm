@@ -1,38 +1,23 @@
-import streamlit as st
-import os
-
-# 1. CREAMOS LA CARPETA DONDE SE GUARDARÁN LOS ARCHIVOS
-CARPETA_DOCS = "base_conocimiento"
-if not os.path.exists(CARPETA_DOCS):
-    os.makedirs(CARPETA_DOCS)
-
-def guardar_archivo(archivo_subido):
-    try:
-        ruta_completa = os.path.join(CARPETA_DOCS, archivo_subido.name)
-        with open(ruta_completa, "wb") as f:
-            f.write(archivo_subido.getbuffer())
-        return True
-    except Exception as e:
-        st.error(f"Error guardando archivo: {e}")
-        return False
-
-def listar_archivos():
-    return [f for f in os.listdir(CARPETA_DOCS) if os.path.isfile(os.path.join(CARPETA_DOCS, f))]
-
-def eliminar_archivo(nombre_archivo):
-    os.remove(os.path.join(CARPETA_DOCS, nombre_archivo))
-
 def renderizar_documentos():
-    st.subheader("📂 Mis Documentos")
-    st.caption("Los archivos que subas aquí quedarán guardados en la nube.")
+    st.subheader("📂 Biblioteca Inteligente")
+    st.caption("Los archivos que subas aquí quedarán guardados para siempre.")
 
     # --- ZONA DE SUBIDA ---
-    archivo = st.file_uploader("Subir nuevo documento", type=["pdf", "txt", "docx", "csv", "xlsx"])
+    archivo = st.file_uploader("Subir nuevo documento", type=["pdf", "txt", "docx", "csv"])
     
+    # === CORRECCIÓN DEL BUCLE INFINITO ===
     if archivo is not None:
-        if guardar_archivo(archivo):
-            st.success(f"✅ ¡{archivo.name} guardado con éxito!")
-            st.rerun() # Recargamos para que aparezca en la lista
+        # Verificamos si este archivo específico YA lo acabamos de procesar
+        if "ultimo_archivo_guardado" not in st.session_state:
+            st.session_state.ultimo_archivo_guardado = ""
+            
+        # Solo guardamos si el nombre es diferente al último
+        if st.session_state.ultimo_archivo_guardado != archivo.name:
+            if guardar_archivo(archivo):
+                st.session_state.ultimo_archivo_guardado = archivo.name # <--- MARCAMOS COMO LISTO
+                st.success(f"✅ ¡{archivo.name} guardado con éxito!")
+                st.rerun() # Ahora sí podemos recargar seguros
+    # =====================================
 
     st.divider()
 
