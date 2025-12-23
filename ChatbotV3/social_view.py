@@ -124,7 +124,7 @@ def mostrar_mapa_central():
         
         # Resaltar selección
         if sid:
-            df_show.loc[df_show['place_id'] == sid, ['color', 'size']] = ['#00FF00', 100]
+            df_show.loc[df_show['place_id'] == sid, ['color', 'size']] = ['#00FF00', 80]
 
         st.map(df_show, color='color', size='size') 
         
