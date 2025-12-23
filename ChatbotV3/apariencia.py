@@ -6,84 +6,112 @@ def cargar_estilos_css():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
         
-        html, body, [class*="css"] { 
+        /* =============================================
+           1. REGLA SUPREMA DE TEXTO (SOLUCIÓN AL TEXTO INVISIBLE)
+           ============================================= */
+        html, body, [class*="css"], .stMarkdown, p, h1, h2, h3,span, div { 
             font-family: 'Roboto', sans-serif; 
+            color: #000000 !important; /* Fuerza bruta: TODO TEXTO NEGRO */
         }
         
-        /* 1. FONDO GENERAL DE LA APP */
         .stApp { 
-            background-color: #F8F9FA; 
+            background-color: #F8F9FA !important; 
         }
 
         /* =============================================
-           2. FORZAR CAJAS BLANCAS (INPUTS Y CHAT)
+           2. ARREGLO DE CHAT (Burbujas y Texto)
            ============================================= */
+        /* Mensajes del Usuario y del Asistente */
+        [data-testid="stChatMessage"] {
+            background-color: #ffffff !important;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+        }
         
-        /* Regla Maestra: Cualquier caja de texto (Input o Textarea) */
-        input[type="text"], textarea, [data-baseweb="input"], [data-baseweb="base-input"] {
-            background-color: #ffffff !important; /* Fondo BLANCO puro */
-            color: #000000 !important;            /* Letra NEGRA pura */
-            -webkit-text-fill-color: #000000 !important; /* Fix para iPhone/Android */
-            caret-color: #000000 !important;      /* Cursor negro */
+        /* El texto dentro de los mensajes de chat */
+        [data-testid="stChatMessageContent"] p, 
+        [data-testid="stChatMessageContent"] div {
+            color: #000000 !important;
+        }
+        
+        /* Iconos del chat (Avatar) */
+        [data-testid="stChatMessageAvatar"] {
+            background-color: #ffffff !important;
+            border: 1px solid #ccc;
         }
 
-        /* Específico para la caja del CHAT (Abajo) */
-        [data-testid="stChatInput"] {
+        /* =============================================
+           3. ARREGLO DE "BROWSE FILES" Y UPLOADER
+           ============================================= */
+        [data-testid="stFileUploader"] {
+            padding: 10px;
             background-color: #ffffff !important;
-            border-radius: 20px !important;
+            border-radius: 10px;
+        }
+        
+        [data-testid="stFileUploader"] section {
+            background-color: #f0f2f6 !important; /* Fondo gris clarito para la zona de soltar */
+        }
+        
+        /* Texto "Drag and drop..." y "Limit 200MB" */
+        [data-testid="stFileUploader"] div, 
+        [data-testid="stFileUploader"] span, 
+        [data-testid="stFileUploader"] small {
+            color: #31333F !important; /* Gris oscuro */
+        }
+
+        /* El botón "Browse files" específico */
+        [data-testid="stFileUploader"] button {
+            color: #ffffff !important; /* Texto del botón BLANCO */
+        }
+
+        /* =============================================
+           4. CAJAS DE TEXTO (INPUTS) Y CHAT INPUT
+           ============================================= */
+        input[type="text"], textarea, [data-baseweb="input"], [data-baseweb="base-input"] {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+            caret-color: #000000 !important;
             border: 1px solid #cccccc !important;
         }
         
-        [data-testid="stChatInput"] textarea {
-            background-color: transparent !important; /* Para que tome el blanco del contenedor */
-        }
-
-        /* Específico para las cajas del SIDEBAR (Qué buscas, Ciudad) */
-        [data-testid="stSidebar"] [data-baseweb="input"] {
+        [data-testid="stChatInput"] {
             background-color: #ffffff !important;
-            border: 1px solid #aaaaaa !important;
-        }
-
-        /* Placeholder (El texto gris de ayuda "Escribe aquí...") */
-        ::placeholder, [data-testid="stChatInput"] textarea::placeholder {
-            color: #555555 !important;
-            opacity: 1 !important;
-            -webkit-text-fill-color: #555555 !important;
         }
 
         /* =============================================
-           3. RESTO DEL DISEÑO (SIDEBAR Y BOTONES)
+           5. BOTONES (CAMARA, HABLAR, ETC)
            ============================================= */
-        
-        /* Fondo Sidebar Blanco */
-        [data-testid="stSidebar"] { 
-            background-color: #ffffff !important; 
-            border-right: 1px solid #e0e0e0; 
-        }
-
-        /* Textos del Sidebar Negros */
-        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
-        [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {
-            color: #262730 !important;
-        }
-
-        /* Botones Morados */
-        div.stButton > button, [data-testid="stFileUploader"] button { 
+        /* Estilo general para botones */
+        div.stButton > button { 
             background: linear-gradient(90deg, #4A90E2 0%, #9013FE 100%) !important;
-            color: white !important;
+            color: #ffffff !important; /* Texto blanco forzado */
             border: none !important;
             border-radius: 15px !important;
             padding: 8px 20px !important;
-        }
-        
-        div.stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(144, 19, 254, 0.3) !important;
+            font-weight: bold !important;
+            text-shadow: none !important;
         }
 
+        /* Arreglo específico para el botón de audio (mic_recorder a veces usa clases distintas) */
+        button {
+            color: #000000; /* Por defecto negro para botones raros, salvo los stButton */
+        }
+
+        /* =============================================
+           6. SIDEBAR (BARRA LATERAL)
+           ============================================= */
+        [data-testid="stSidebar"] { 
+            background-color: #ffffff !important; 
+        }
+        [data-testid="stSidebar"] * {
+            color: #262730 !important; /* Todo texto en sidebar: Gris oscuro */
+        }
+        
+        /* Ocultar elementos extra */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        .block-container { padding-top: 2rem; }
         
         </style>
     """, unsafe_allow_html=True)
