@@ -117,4 +117,71 @@ def renderizar_sidebar():
         st.session_state.lugar_seleccionado_id = None
 
     # --- CONTROLES ---
-    tipo = st.selectbox("
+    tipo = st.selectbox("Buscar:", ["Farmacias", "Hospitales", "Parques", "Gimnasios", "Restaurantes"])
+    usar_gps = st.checkbox("📍 Usar mi GPS")
+    
+    lat_usuario, lon_usuario = None, None
+    ciudad = ""
+
+    if usar_gps:
+        loc = get_geolocation()
+        if loc:
+            lat_usuario = loc['coords']['latitude']
+            lon_usuario = loc['coords']['longitude']
+            st.caption(f"📡 GPS Detectado")
+        else:
+            st.warning("⚠️ Esperando señal GPS...")
+    else:
+        ciudad = st.text_input("Ciudad:", "Bogota")
+
+    # --- BOTÓN DE BÚSQUEDA Y ENVÍO AL CHAT ---
+    if st.button("🔍 BUSCAR CERCA", use_container_width=True):
+        if usar_gps and lat_usuario is None:
+            st.error("⚠️ GPS cargando. Espera un momento.")
+        else:
+            with st.spinner("Escaneando zona y calculando rutas..."):
+                # 1. EJECUTAR BÚSQUEDA
+                df, msg = buscar_lugares_google(ciudad, tipo, lat_gps=lat_usuario, lon_gps=lon_usuario)
+                
+                if df is not None:
+                    # Guardar en sesión
+                    st.session_state.mapa_data = df
+                    st.session_state.lugar_seleccionado_id = None
+                    
+                    # 2. GENERAR RESPUESTA PARA EL CHAT 💬
+                    # Filtramos "USER_LOC" y tomamos el Top 5
+                    df_chat = df[df['place_id'] != "USER_LOC"].sort_values(by='distancia').head(5)
+                    
+                    mensaje_chat = f"✅ **He encontrado {len(df)-1} {tipo} cerca de ti.**\n\nAquí tienes los **5 más cercanos**:\n\n"
+                    
+                    for i, row in df_chat.iterrows():
+                        # Link directo
+                        link = f"https://www.google.com/maps/search/?api=1&query={row['name'].replace(' ', '+')}&query_place_id={row['place_id']}"
+                        
+                        mensaje_chat += f"**{i+1}. {row['name']}** (a {row['distancia']} km)\n"
+                        mensaje_chat += f"⭐ {row['rating']} | 🏠 {row['address']}\n"
+                        mensaje_chat += f"[🚗 Cómo llegar con Google Maps]({link})\n\n"
+                    
+                    mensaje_chat += "_📍 Revisa el mapa en la barra lateral para ver la ubicación exacta._"
+
+                    # 3. ENVIAR AL HISTORIAL
+                    st.session_state.chat_history.append(AIMessage(content=mensaje_chat))
+                    
+                    # 4. RECARGAR PAGINA
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+    # --- VISUALIZACIÓN DEL MAPA Y LISTA LATERAL ---
+    if st.session_state.mapa_data is not None:
+        
+        st.divider()
+        
+        # 1. MAPA
+        df_display = st.session_state.mapa_data.copy()
+        selected_id = st.session_state.lugar_seleccionado_id
+        
+        # Lógica de Resaltado (Verde)
+        if selected_id:
+            mask = df_display['place_id'] == selected_id
+            df_display.loc[mask,
