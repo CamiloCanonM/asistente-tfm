@@ -109,8 +109,9 @@ def renderizar_sidebar():
                     st.rerun()
                 else: st.error(msg)
 
+
 # ==========================================
-# 3. RENDERIZADO CENTRAL (MAPA)
+# 3. RENDERIZADO CENTRAL (MAPA + TARJETAS)
 # ==========================================
 def mostrar_mapa_central():
     if st.session_state.get("mapa_data") is not None:
@@ -121,31 +122,80 @@ def mostrar_mapa_central():
         df_show = st.session_state.mapa_data.copy()
         sid = st.session_state.lugar_seleccionado_id
         
-        # Resaltar selección
+        # Resaltar selección en el mapa
         if sid:
-            df_show.loc[df_show['place_id'] == sid, ['color', 'size']] = ['#00FF00', 80 ]
+            df_show.loc[df_show['place_id'] == sid, ['color', 'size']] = ['#00FF00', 100] # Verde brillante
 
-        # MAPA
+        # 1. MOSTRAR EL MAPA
         st.map(df_show, color='color', size='size') 
         
-        if sid and st.button("🔙 Quitar Zoom", key="btn_reset"):
-            st.session_state.lugar_seleccionado_id = None
-            st.rerun()
+        # Botón para quitar zoom si hay uno seleccionado
+        if sid:
+            if st.button("🔙 Ver todos (Quitar Zoom)", key="btn_reset"):
+                st.session_state.lugar_seleccionado_id = None
+                st.rerun()
 
-        # LISTA DEBAJO
-        for i, r in df_show[df_show['place_id'] != "USER_LOC"].iterrows():
-            with st.expander(f"{'🥇' if i==0 else '📍'} {r['name']} ({r['distancia']} km)"):
-                st.write(f"🏠 {r['address']} | ⭐ {r['rating']}")
+        st.markdown("---")
+        st.markdown("### 📍 Lugares Encontrados")
+
+        # 2. MOSTRAR LAS TARJETAS (GRID DE 3 COLUMNAS)
+        # Filtramos para no mostrar la ubicación del usuario en las tarjetas
+        lugares = df_show[df_show['place_id'] != "USER_LOC"]
+        
+        # Creamos 3 columnas para que parezca una galería
+        cols = st.columns(3)
+
+        for i, (index, r) in enumerate(lugares.iterrows()):
+            # Esta lógica distribuye las tarjetas: 0->Col1, 1->Col2, 2->Col3, 3->Col1...
+            col_actual = cols[i % 3] 
+            
+            with col_actual:
+                # --- A. DISEÑO HTML DE LA TARJETA ---
+                card_html = f"""
+                <div style="
+                    background-color: white;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 15px;
+                    padding: 15px;
+                    margin-bottom: 10px;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                    height: 180px; /* Altura fija para que se vean alineadas */
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                ">
+                    <div>
+                        <h4 style="margin:0 0 5px 0; color:#333; font-size:16px;">{r['name']}</h4>
+                        <p style="margin:0; color:#666; font-size:12px; line-height:1.4;">{r['address']}</p>
+                    </div>
+                    
+                    <div style="margin-top:10px; border-top:1px solid #f0f0f0; padding-top:8px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="background:#E3F2FD; color:#1565C0; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:bold;">
+                            🚗 {r['distancia']} km
+                        </span>
+                        <span style="color:#F5A623; font-weight:bold; font-size:12px;">
+                            ⭐ {r['rating']}
+                        </span>
+                    </div>
+                </div>
+                """
+                st.markdown(card_html, unsafe_allow_html=True)
                 
-                c1, c2 = st.columns(2)
-                with c1:
-                    if st.button("🎯 Ver en el mapa", key=f"focus_{i}"):
+                # --- B. BOTONES DE ACCIÓN (Debajo de la tarjeta) ---
+                c_btn1, c_btn2 = st.columns(2)
+                with c_btn1:
+                    # Botón para enfocar en el mapa
+                    if st.button("🎯 Ver", key=f"focus_{r['place_id']}"):
                         st.session_state.lugar_seleccionado_id = r['place_id']
                         st.rerun()
-                with c2:
+                with c_btn2:
+                    # Botón para ir a Google Maps real
                     link = f"https://www.google.com/maps/search/?api=1&query={r['name'].replace(' ', '+')}&query_place_id={r['place_id']}"
-                    st.link_button("🚗 llevame al lugar", link)
+                    st.link_button("🗺️ Ir", link)
 
-        if st.button("🗑️ Cerrar Mapa", key="close_map"):
+        st.markdown("<br>", unsafe_allow_html=True) # Espacio final
+        
+        # Botón general de cierre
+        if st.button("🗑️ Limpiar Mapa", key="close_map_main", use_container_width=True):
             st.session_state.mapa_data = None
             st.rerun()
