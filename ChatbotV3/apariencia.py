@@ -73,7 +73,7 @@ def mostrar_header():
     ruta_logo = os.path.join(os.path.dirname(__file__), "logo.png")
     
     # Usamos 3 columnas: [Espacio, LOGO, Espacio]
-    # El [1, 2, 1] significa que el logo ocupará el 50% del ancho central
+    # El [1, 1, 1] significa que el logo ocupará el 50% del ancho central
     c1, c2, c3 = st.columns([1, 2, 1]) 
     
     with c2:
