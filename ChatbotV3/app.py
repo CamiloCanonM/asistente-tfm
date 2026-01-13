@@ -160,7 +160,7 @@ else:
 
 
 # --- CEREBROS ---
-llm_seguridad = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+llm_seguridad = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 # PROMPT DE SEGURIDAD (VERSIÓN PERMISIVA)
 template_seguridad = """Actúa como un filtro de seguridad lógico.
@@ -190,7 +190,7 @@ def analizar_riesgo(mensaje):
     return (prompt_seguridad | llm_seguridad).invoke({"mensaje": mensaje}).content.strip().upper()
 
 # Configuración del Chat Principal
-llm_chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.5)
+llm_chat = ChatOpenAI(model="gpt-4o-mini", temperature=0.5)
 
 # --- PROMPT---
 template_chat = """Eres un asistente virtual experto en Silver Economy, diseñado para acompañar a personas mayores y sus familias.
@@ -532,3 +532,4 @@ if prompt_usuario:
 # Verificamos si existe el módulo antes de llamarlo
 if 'social_view' in globals():
     social_view.mostrar_mapa_central()
+
