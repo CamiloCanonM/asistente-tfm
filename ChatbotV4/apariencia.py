@@ -1,0 +1,101 @@
+import streamlit as st
+import os
+
+def cargar_estilos_css():
+    st.markdown("""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        
+        html, body, [class*="css"] { 
+            font-family: 'Roboto', sans-serif; 
+        }
+        
+        /* 1. FONDO GENERAL DE LA APP */
+        .stApp { 
+            background-color: #F8F9FA; 
+        }
+
+        /* =============================================
+           2. FORZAR CAJAS BLANCAS (INPUTS Y CHAT)
+           ============================================= */
+        
+        /* Regla Maestra: Cualquier caja de texto (Input o Textarea) */
+        input[type="text"], textarea, [data-baseweb="input"], [data-baseweb="base-input"] {
+            background-color: #ffffff !important; /* Fondo BLANCO puro */
+            color: #000000 !important;            /* Letra NEGRA pura */
+            -webkit-text-fill-color: #000000 !important; /* Fix para iPhone/Android */
+            caret-color: #000000 !important;      /* Cursor negro */
+        }
+
+        /* Específico para la caja del CHAT (Abajo) */
+        [data-testid="stChatInput"] {
+            background-color: #ffffff !important;
+            border-radius: 20px !important;
+            border: 1px solid #cccccc !important;
+        }
+        
+        [data-testid="stChatInput"] textarea {
+            background-color: transparent !important; /* Para que tome el blanco del contenedor */
+        }
+
+        /* Específico para las cajas del SIDEBAR (Qué buscas, Ciudad) */
+        [data-testid="stSidebar"] [data-baseweb="input"] {
+            background-color: #ffffff !important;
+            border: 1px solid #aaaaaa !important;
+        }
+
+        /* Placeholder (El texto gris de ayuda "Escribe aquí...") */
+        ::placeholder, [data-testid="stChatInput"] textarea::placeholder {
+            color: #555555 !important;
+            opacity: 1 !important;
+            -webkit-text-fill-color: #555555 !important;
+        }
+
+        /* =============================================
+           3. RESTO DEL DISEÑO (SIDEBAR Y BOTONES)
+           ============================================= */
+        
+        /* Fondo Sidebar Blanco */
+        [data-testid="stSidebar"] { 
+            background-color: #ffffff !important; 
+            border-right: 1px solid #e0e0e0; 
+        }
+
+        /* Textos del Sidebar Negros */
+        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {
+            color: #262730 !important;
+        }
+
+        /* Botones Morados */
+        div.stButton > button, [data-testid="stFileUploader"] button { 
+            background: linear-gradient(90deg, #4A90E2 0%, #9013FE 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 15px !important;
+            padding: 8px 20px !important;
+        }
+        
+        div.stButton > button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(144, 19, 254, 0.3) !important;
+        }
+
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        .block-container { padding-top: 2rem; }
+        
+        </style>
+    """, unsafe_allow_html=True)
+
+def mostrar_header():
+    ruta_logo = os.path.join(os.path.dirname(__file__), "logo.png")
+    
+    # CENTRADO DEL LOGO: Usamos 3 columnas para que no ocupe todo el ancho
+    c1, c2, c3 = st.columns([1, 3, 3])
+    
+    with c2: # Ponemos la imagen solo en la columna del medio
+        if os.path.exists(ruta_logo):
+            st.image(ruta_logo, use_container_width=True)
+        else:
+            st.markdown("<h1 style='text-align: center; color:#4A90E2;'>🧬 KIVIA.AI</h1>", unsafe_allow_html=True)
