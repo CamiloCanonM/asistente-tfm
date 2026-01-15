@@ -19,11 +19,11 @@ def buscar_lugares_osm(lat, lon, radio=2000, tipo="pharmacy"):
     
     # Mapeo de términos comunes a etiquetas OSM
     tags_osm = {
-        "farmacia": '["amenity"="pharmacy"]',
+        "droguerias": '["amenity"="pharmacy"]',
         "hospital": '["amenity"="hospital"]',
-        "parque": '["leisure"="park"]',
-        "restaurante": '["amenity"="restaurant"]',
-        "cafe": '["amenity"="cafe"]'
+        "parques": '["leisure"="park"]',
+        "restaurantes saludables": '["amenity"="restaurant"]',
+        "cafes": '["amenity"="cafe"]'
     }
     
     # Seleccionamos la etiqueta adecuada o usamos una genérica
