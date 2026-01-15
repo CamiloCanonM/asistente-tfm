@@ -21,9 +21,6 @@ def calcular_distancia(lat1, lon1, lat2, lon2):
 
 @st.cache_data(show_spinner=False)
 def buscar_lugares_google(lat_ref, lon_ref, keyword, radio=2000):
-    """
-    Busca usando Google Places pero devuelve formato limpio para el mapa.
-    """
     try:
         api_key = st.secrets.get("GOOGLE_API_KEY")
         if not api_key:
@@ -64,14 +61,14 @@ def buscar_lugares_google(lat_ref, lon_ref, keyword, radio=2000):
         return None
 
 # ==========================================
-# 2. RENDERIZADO BARRA LATERAL
+# 2. RENDERIZADO BARRA LATERAL (CON LISTA DESPLEGABLE)
 # ==========================================
 def renderizar_sidebar():
-    st.subheader("🌍 Explorador (Google Data)")
+    st.subheader("🌍 Modulo de Georeferenciación")
     
-    # 1. Ubicación (Por defecto Bogotá si falla GPS)
+    # 1. Ubicación
     if "user_location" not in st.session_state:
-        st.session_state.user_location = {'lat': 4.6097, 'lon': -74.0817}
+        st.session_state.user_location = {'lat': 4.6097, 'lon': -74.0817} # Bogotá por defecto
 
     usar_gps = st.checkbox("📍 Usar mi ubicación real", value=True)
     
@@ -83,83 +80,99 @@ def renderizar_sidebar():
                     'lat': loc['coords']['latitude'],
                     'lon': loc['coords']['longitude']
                 }
-                st.caption(f"GPS OK: {st.session_state.user_location['lat']:.4f}")
+                st.caption(f"GPS Activo: {st.session_state.user_location['lat']:.4f}")
         except:
-            st.warning("GPS no disponible en este navegador.")
+            st.warning("GPS no disponible.")
 
-    # 2. Buscador Libre
-    query = st.text_input("¿Qué buscas hoy?", placeholder="Ej: Farmacia 24h, Pizza, Cine...")
+    # 2. SELECTOR DE BÚSQUEDA (NUEVO)
+    st.write("¿Qué necesitas hoy?")
+    opcion = st.selectbox(
+        "Selecciona una categoría:",
+        ["Drogueria", "Hospital", "Restaurante Saludable", "Parques", "Supermercado", "Tienda Naturista", "Gimnasio", "Tienda deportiva"],
+        label_visibility="collapsed"
+    )
+
+    # Si elige "Otro...", mostramos el campo de texto
+    query = opcion
+    if opcion == "Otro...":
+        query = st.text_input("Escribe qué buscas:", placeholder="Ej: Cine, Zapatería...")
     
-    if st.button("🔍 Buscar en Google"):
+    # Botón de Buscar
+    if st.button("🔍 Buscar en el Mapa", use_container_width=True):
         if not query:
-            st.warning("Escribe algo para buscar.")
+            st.warning("Por favor escribe qué buscas.")
         else:
             lat = st.session_state.user_location['lat']
             lon = st.session_state.user_location['lon']
             
-            with st.spinner(f"Consultando a Google sobre '{query}'..."):
+            with st.spinner(f"Buscando {query}..."):
                 df_lugares = buscar_lugares_google(lat, lon, keyword=query)
                 
                 if df_lugares is not None and not df_lugares.empty:
                     st.session_state.mapa_data = df_lugares
                     
-                    # --- PUENTE CON LA IA (GEO CONTEXTO) ---
-                    texto_ia = f"Resultados de Google Maps para '{query}':\n"
+                    # --- PUENTE CON LA IA ---
+                    texto_ia = f"Resultados del mapa para '{query}':\n"
                     for idx, row in df_lugares.head(5).iterrows():
-                        texto_ia += f"- {row['name']} ({row['rating']}⭐) a {row['distancia']}km. Dirección: {row['address']}\n"
+                        texto_ia += f"- {row['name']} ({row['rating']}⭐) a {row['distancia']}km.\n"
                     
                     st.session_state.geo_contexto = texto_ia
-                    st.toast(f"✅ Google encontró {len(df_lugares)} sitios. IA Actualizada.")
-                    # ---------------------------------------
-                    
-                    # Forzamos recarga para mostrar mapa
+                    st.toast(f"✅ Encontrados {len(df_lugares)} lugares.")
                     st.rerun()
                 else:
-                    st.warning("Google no encontró resultados cercanos.")
-                    st.session_state.geo_contexto = "No se encontraron resultados."
+                    st.warning("No se encontraron resultados cercanos.")
+                    st.session_state.mapa_data = None
 
 # ==========================================
-# 3. RENDERIZADO CENTRAL (MAPA FOLIUM)
+# 3. RENDERIZADO CENTRAL (CON BOTÓN OCULTAR)
 # ==========================================
 def mostrar_mapa_central():
-    st.divider()
-    st.subheader("🗺️ Mapa de Resultados")
-    
-    # Recuperamos coordenadas centro
-    lat_center = st.session_state.get("user_location", {}).get('lat', 4.6097)
-    lon_center = st.session_state.get("user_location", {}).get('lon', -74.0817)
-
-    # Creamos mapa base
-    m = folium.Map(location=[lat_center, lon_center], zoom_start=14)
-    
-    # Marcador: TÚ
-    folium.Marker(
-        [lat_center, lon_center], 
-        popup="<b>TU UBICACIÓN</b>", 
-        icon=folium.Icon(color="blue", icon="user", prefix="fa")
-    ).add_to(m)
-
-    # Marcadores: RESULTADOS
+    # Solo mostramos si hay datos cargados
     if "mapa_data" in st.session_state and st.session_state.mapa_data is not None:
-        df = st.session_state.mapa_data
         
+        st.divider()
+        
+        # Cabecera con Botón de Cerrar
+        c1, c2 = st.columns([3, 1])
+        with c1:
+            st.subheader("🗺️ Mapa de Resultados")
+        with c2:
+            # BOTÓN PARA OCULTAR EL MAPA
+            if st.button("❌ Ocultar", use_container_width=True):
+                st.session_state.mapa_data = None
+                st.rerun()
+
+        # Recuperamos coordenadas
+        lat_center = st.session_state.get("user_location", {}).get('lat', 4.6097)
+        lon_center = st.session_state.get("user_location", {}).get('lon', -74.0817)
+
+        # Mapa Folium
+        m = folium.Map(location=[lat_center, lon_center], zoom_start=14)
+        
+        # Marcador Usuario
+        folium.Marker(
+            [lat_center, lon_center], 
+            popup="<b>TÚ</b>", 
+            icon=folium.Icon(color="blue", icon="user", prefix="fa")
+        ).add_to(m)
+
+        # Marcadores Resultados
+        df = st.session_state.mapa_data
         for idx, row in df.iterrows():
-            # HTML para el popup (Nombre + Estrellas)
             html_popup = f"<b>{row['name']}</b><br>⭐ {row['rating']}<br>📍 {row['distancia']} km"
-            
             folium.Marker(
                 [row['lat'], row['lon']],
                 popup=html_popup,
                 icon=folium.Icon(color="red", icon="info-sign")
             ).add_to(m)
 
-    # Mostrar mapa
-    st_folium(m, width="100%", height=500)
-    
-    # Tabla de resultados debajo
-    if "mapa_data" in st.session_state and st.session_state.mapa_data is not None:
-        st.markdown("### 📋 Detalles")
+        # Renderizar
+        st_folium(m, width="100%", height=500)
+        
+        # Tabla simple
+        st.caption("Detalles de los lugares encontrados:")
         st.dataframe(
-            st.session_state.mapa_data[['name', 'rating', 'distancia', 'address']],
-            hide_index=True
+            df[['name', 'rating', 'distancia', 'address']],
+            hide_index=True,
+            use_container_width=True
         )
