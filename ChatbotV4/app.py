@@ -225,12 +225,17 @@ Sigue estas reglas estrictas para responder:
 7. 🧠 USO DEL CONTEXTO:
    - Usa la información de abajo para responder.
    - Si la respuesta NO está en el contexto, di: "Lo siento, no tengo esa información específica en mis documentos". ¡Pero NO te pongas a saludar para rellenar el silencio!
+
+8. IMPORTANTE: Si el usuario pregunta "dónde" o por ubicación, usa los "LUGARES CERCANOS" para recomendar sitios específicos.
  
 ---
 PERFIL: {PERFIL_CLINICO}
 
 CONTEXTO RECUPERADO (Tus conocimientos):
 {context}
+
+LUGARES CERCANOS (Detectados por GPS):
+{geo_contexto}
 ---
 HISTORIAL DE CONVERSACIÓN (Lo que ya hablamos):
 {chat_history}
@@ -243,23 +248,26 @@ prompt_chat = ChatPromptTemplate.from_template(template_chat)
 
 # --- FUNCIÓN  ---
 def responder_rag(pregunta, nombre):
-    # A. Recuperar documentos (Contexto)
+    # 1. Contexto Documental
     if st.session_state.retriever:
         docs = st.session_state.retriever.invoke(pregunta)
         contexto = "\n".join([d.page_content for d in docs])
     else: 
         contexto = "No hay documentos cargados."
     
-    # B. Recuperar historial (Memoria)
+    # 2. Contexto GEO (¡NUEVO!)
+    # Recuperamos lo que el mapa guardó en social_view.py
+    geo_data = st.session_state.get("geo_contexto", "No se han buscado lugares en el mapa aún.")
+    
+    # 3. Historial
     historial_texto = "\n".join([f"{m.type}: {m.content}" for m in st.session_state.chat_history[-4:]])
     
-    # C. Enviarlo todo al cerebro (AQUÍ ESTABA EL ERROR)
-    # Debemos usar las MISMAS claves que pusiste entre llaves {} en el texto de arriba
+    # 4. Invocar con TODOS los datos
     return (prompt_chat | llm_chat).invoke({
         "context": contexto,
+        "geo_contexto": geo_data,   # <--- La clave que faltaba
         "question": pregunta,
-        "nombre_usuario": nombre,      # Coincide con {nombre_usuario}
-        "PERFIL_CLINICO": PERFIL_CLINICO, # Coincide con {PERFIL_CLINICO} (Antes tenías "perfil")
+        "PERFIL_CLINICO": PERFIL_CLINICO,
         "chat_history": historial_texto
     }).content
 
@@ -532,4 +540,5 @@ if prompt_usuario:
 # Verificamos si existe el módulo antes de llamarlo
 if 'social_view' in globals():
     social_view.mostrar_mapa_central()
+
 
