@@ -539,9 +539,10 @@ if prompt_usuario:
 # ==========================================
 # 7. MAPA (Al final)
 # ==========================================
-# Verificamos si existe el módulo antes de llamarlo
-if 'social_view' in globals():
-    social_view.mostrar_mapa_central()
+
+st.divider() # Una línea bonita para separar el chat del mapa
+social_view.mostrar_mapa_central()
+
 
 
 
