@@ -15,3 +15,5 @@ msoffcrypto-tool
 googlemaps
 Pillow
 streamlit-js-eval
+folium
+streamlit-folium
