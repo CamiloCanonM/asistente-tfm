@@ -1,141 +1,140 @@
 import streamlit as st
-import pandas as pd
-import googlemaps
-import math
 from streamlit_js_eval import get_geolocation
+import folium
+from streamlit_folium import st_folium
+import requests
+import pandas as pd
 from langchain_core.messages import AIMessage
 
 # ==========================================
-# 1. LOGICA MATEMÁTICA Y GOOGLE
+# 1. LÓGICA DE BÚSQUEDA (OVERPASS API - GRATIS)
 # ==========================================
-def calcular_distancia(lat1, lon1, lat2, lon2):
-    R = 6371  
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    a = math.sin(dlat / 2) * math.sin(dlat / 2) + \
-        math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * \
-        math.sin(dlon / 2) * math.sin(dlon / 2)
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return round(R * c, 2)
+@st.cache_data(show_spinner=False)
+def buscar_lugares_osm(lat, lon, radio=2000, tipo="pharmacy"):
+    """
+    Busca puntos de interés en OpenStreetMap usando la API Overpass.
+    Gratis y sin API Keys.
+    """
+    overpass_url = "http://overpass-api.de/api/interpreter"
+    
+    # Mapeo de términos comunes a etiquetas OSM
+    tags_osm = {
+        "farmacia": '["amenity"="pharmacy"]',
+        "hospital": '["amenity"="hospital"]',
+        "parque": '["leisure"="park"]',
+        "restaurante": '["amenity"="restaurant"]',
+        "cafe": '["amenity"="cafe"]'
+    }
+    
+    # Seleccionamos la etiqueta adecuada o usamos una genérica
+    tag_query = tags_osm.get(tipo.lower(), f'["amenity"="{tipo.lower()}"]')
+    if tipo.lower() not in tags_osm:
+        # Si no coincide, intentamos búsqueda genérica por nombre (más lento, mejor usar tags)
+        pass 
 
-def buscar_lugares_google(ciudad, palabra_clave, lat_gps=None, lon_gps=None):
+    overpass_query = f"""
+    [out:json];
+    (
+      node{tag_query}(around:{radio},{lat},{lon});
+      way{tag_query}(around:{radio},{lat},{lon});
+      relation{tag_query}(around:{radio},{lat},{lon});
+    );
+    out center;
+    """
     try:
-        # Intenta obtener la API Key
-        api_key = st.secrets.get("GOOGLE_API_KEY")
-        if not api_key: return None, "Falta GOOGLE_API_KEY en secrets."
+        response = requests.get(overpass_url, params={'data': overpass_query}, timeout=10)
+        data = response.json()
         
-        gmaps = googlemaps.Client(key=api_key)
-    except: return None, "Error iniciando Google Maps."
-
-    try:
-        if lat_gps and lon_gps:
-            lat_ref, lon_ref = lat_gps, lon_gps
-        else:
-            geo = gmaps.geocode(ciudad)
-            if not geo: return None, f"No encontré: {ciudad}"
-            loc = geo[0]['geometry']['location']
-            lat_ref, lon_ref = loc['lat'], loc['lng']
-
-        # Busqueda
-        if not palabra_clave: palabra_clave = "restaurante" # Valor por defecto
-        
-        res = gmaps.places_nearby(location=(lat_ref, lon_ref), keyword=palabra_clave, radius=2000)
-        lugares = res.get('results', [])
-        
-        if not lugares: return None, "No hay resultados cercanos."
-
-        data = []
-        # Añadir usuario si usa GPS
-        if lat_gps and lon_gps:
-            data.append({
-                'latitude': lat_ref, 'longitude': lon_ref, 
-                'name': "🔵 TU UBICACIÓN", 'place_id': "USER_LOC", 
-                'color': '#0000FF', 'size': 40, 'distancia': 0.0, 
-                'address': 'Aquí', 'rating': 'YO'
-            })
-
-        for l in lugares:
-            lat = l['geometry']['location']['lat']
-            lng = l['geometry']['location']['lng']
-            km = calcular_distancia(lat_ref, lon_ref, lat, lng)
-            data.append({
-                'latitude': lat, 'longitude': lng, 
-                'name': l.get('name'), 
-                'address': l.get('vicinity'), 
-                'rating': l.get('rating', 'N/A'), 
-                'place_id': l.get('place_id'), 
-                'color': '#FF0000', 'size': 20, 'distancia': km
-            })
+        resultados = []
+        for element in data['elements']:
+            lat_el = element.get('lat') or element.get('center', {}).get('lat')
+            lon_el = element.get('lon') or element.get('center', {}).get('lon')
+            nombre = element.get('tags', {}).get('name', 'Sin nombre')
             
-        return pd.DataFrame(data).sort_values(by='distancia'), f"Encontrados {len(lugares)}"
-
-    except Exception as e: return None, str(e)
+            if lat_el and lon_el:
+                resultados.append({
+                    "name": nombre,
+                    "lat": lat_el,
+                    "lon": lon_el,
+                    "tipo": tipo
+                })
+        return pd.DataFrame(resultados)
+    except Exception as e:
+        return None
 
 # ==========================================
-# 2. RENDERIZADO BARRA LATERAL (CONTROLES)
+# 2. RENDERIZADO BARRA LATERAL
 # ==========================================
 def renderizar_sidebar():
-    st.subheader(" 🌎 Modulo de Georreferenciación")
-    if "mapa_data" not in st.session_state: st.session_state.mapa_data = None
-    if "lugar_seleccionado_id" not in st.session_state: st.session_state.lugar_seleccionado_id = None
-
-    # --- CAMBIO: AHORA ES TEXTO LIBRE ---
-    tipo = st.text_input("🔍 ¿Qué buscas?", placeholder="Ej: Pizza, Farmacia, Cine...")
+    st.subheader("🌍 Explorador Local")
     
-    # Si el usuario lo deja vacío, usamos algo por defecto
-    if not tipo:
-        tipo = "Restaurantes"
-    # ------------------------------------
+    # 1. Obtener ubicación
+    if "user_location" not in st.session_state:
+        st.session_state.user_location = {'lat': 4.6097, 'lon': -74.0817} # Bogotá por defecto
 
-    usar_gps = st.checkbox("📍 Usar GPS")
-    
-    lat, lon = None, None
+    usar_gps = st.checkbox("📍 Usar mi ubicación real")
     if usar_gps:
-        try:
-            loc = get_geolocation() # Requiere streamlit_js_eval
-            if loc: lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
-        except: pass
+        loc = get_geolocation()
+        if loc:
+            st.session_state.user_location = {
+                'lat': loc['coords']['latitude'],
+                'lon': loc['coords']['longitude']
+            }
+            st.caption(f"GPS Detectado: {st.session_state.user_location['lat']:.4f}, {st.session_state.user_location['lon']:.4f}")
+
+    # 2. Controles de búsqueda
+    tipo_lugar = st.selectbox("¿Qué buscas?", ["Farmacia", "Hospital", "Parque", "Restaurante", "Cafe"])
     
-    ciudad = st.text_input("Ciudad:", "Bogota") if not usar_gps else ""
-
-    if st.button("🔍 BUSCAR "):
-        if usar_gps and not lat:
-            st.error("Esperando señal GPS...")
-        else:
-            with st.spinner("Buscando..."):
-                df, msg = buscar_lugares_google(ciudad, tipo, lat, lon)
-                if df is not None:
-                    st.session_state.mapa_data = df
-                    st.session_state.lugar_seleccionado_id = None
-                    
-                    # --- INICIO DEL AGREGADO: PUENTE CON LA IA ---
-                    # Convertimos los resultados del mapa en texto para el Chatbot
-                    texto_para_ia = f"Lugares encontrados en el mapa buscando '{tipo}':\n"
-                    count = 0
-                    for index, row in df.iterrows():
-                        # Excluimos la ubicación del usuario y limitamos a 5
-                        if row['place_id'] != "USER_LOC" and count < 5:
-                            texto_para_ia += f"- {row['name']} (a {row['distancia']} km) - Calif: {row['rating']}\n"
-                            count += 1
-                    
-                    # Guardamos esto en la memoria global para que app.py lo lea
-                    st.session_state.geo_contexto = texto_para_ia
-                    st.toast("✅ IA actualizada con los lugares del mapa")
-                    # --- FIN DEL AGREGADO ---
-
-                    st.session_state.chat_history.append(AIMessage(content=f"✅ Mapa de **{tipo}** cargado abajo."))
-                    st.rerun()
-                else: st.error(msg)
-
+    if st.button("🔍 Buscar en el Mapa"):
+        lat = st.session_state.user_location['lat']
+        lon = st.session_state.user_location['lon']
+        
+        with st.spinner(f"Buscando {tipo_lugar}..."):
+            df_lugares = buscar_lugares_osm(lat, lon, tipo=tipo_lugar)
+            
+            if df_lugares is not None and not df_lugares.empty:
+                st.session_state.mapa_osm_data = df_lugares
+                
+                # --- PUENTE CON LA IA ---
+                texto_ia = f"He encontrado estos {tipo_lugar}s cerca:\n"
+                for idx, row in df_lugares.head(5).iterrows():
+                    texto_ia += f"- {row['name']}\n"
+                st.session_state.geo_contexto = texto_ia
+                st.toast("✅ IA Actualizada con el mapa")
+                # ----------------------
+            else:
+                st.warning("No se encontraron lugares cerca.")
+                st.session_state.geo_contexto = "No se encontraron lugares cercanos."
 
 # ==========================================
-# 3. RENDERIZADO CENTRAL (MAPA + TARJETAS)
+# 3. RENDERIZADO CENTRAL (MAPA FOLIUM)
 # ==========================================
 def mostrar_mapa_central():
-    if st.session_state.get("mapa_data") is not None:
-        
-        st.divider()
-        st.subheader("🗺️ Resultados en el Mapa")
-        
-        df_show = st.session_state.mapa_data.copy()
-        sid = st
+    st.divider()
+    st.subheader("🗺️ Mapa de Bienestar")
+    
+    # Coordenadas base
+    lat_center = st.session_state.get("user_location", {}).get('lat', 4.6097)
+    lon_center = st.session_state.get("user_location", {}).get('lon', -74.0817)
+
+    # Crear mapa base
+    m = folium.Map(location=[lat_center, lon_center], zoom_start=15)
+    
+    # Marcador Usuario
+    folium.Marker(
+        [lat_center, lon_center], 
+        popup="Tú estás aquí", 
+        icon=folium.Icon(color="blue", icon="user")
+    ).add_to(m)
+
+    # Marcadores de Resultados (Si hay)
+    if "mapa_osm_data" in st.session_state and st.session_state.mapa_osm_data is not None:
+        for idx, row in st.session_state.mapa_osm_data.iterrows():
+            folium.Marker(
+                [row['lat'], row['lon']],
+                popup=row['name'],
+                icon=folium.Icon(color="green", icon="info-sign")
+            ).add_to(m)
+
+    # Renderizar en Streamlit
+    st_data = st_folium(m, width="100%", height=400)
