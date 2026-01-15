@@ -83,7 +83,7 @@ def renderizar_sidebar():
             st.caption(f"GPS Detectado: {st.session_state.user_location['lat']:.4f}, {st.session_state.user_location['lon']:.4f}")
 
     # 2. Controles de búsqueda
-    tipo_lugar = st.selectbox("¿Qué buscas?", ["Farmacia", "Hospital", "Parque", "Restaurante", "Cafe"])
+    tipo_lugar = st.selectbox("¿Qué buscas?", ["Droguerias", "Hospital", "Parques", "Restaurantes Saludables", "Cafe", "Gimnasios])
     
     if st.button("🔍 Buscar en el Mapa"):
         lat = st.session_state.user_location['lat']
