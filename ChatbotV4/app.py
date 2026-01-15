@@ -248,27 +248,29 @@ prompt_chat = ChatPromptTemplate.from_template(template_chat)
 
 # --- FUNCIÓN  ---
 def responder_rag(pregunta, nombre):
-    # 1. Contexto Documental
+    # A. Recuperar documentos (Contexto)
     if st.session_state.retriever:
         docs = st.session_state.retriever.invoke(pregunta)
         contexto = "\n".join([d.page_content for d in docs])
     else: 
         contexto = "No hay documentos cargados."
     
-    # 2. Contexto GEO (¡NUEVO!)
-    # Recuperamos lo que el mapa guardó en social_view.py
-    geo_data = st.session_state.get("geo_contexto", "No se han buscado lugares en el mapa aún.")
-    
-    # 3. Historial
+    # B. Recuperar Historial
     historial_texto = "\n".join([f"{m.type}: {m.content}" for m in st.session_state.chat_history[-4:]])
     
-    # 4. Invocar con TODOS los datos
+    # C. Recuperar Contexto GEO (El puente con el mapa)
+    # Si no existe la variable, ponemos un texto vacío para que no falle
+    geo_data = st.session_state.get("geo_contexto", "No se han buscado lugares cercanos.")
+
+    # D. ENVIAR AL CEREBRO
+    # ¡IMPORTANTE! Aquí enviamos TODAS las variables que tu prompt pide:
     return (prompt_chat | llm_chat).invoke({
         "context": contexto,
-        "geo_contexto": geo_data,   # <--- La clave que faltaba
-        "question": pregunta,
-        "PERFIL_CLINICO": PERFIL_CLINICO,
-        "chat_history": historial_texto
+        "geo_contexto": geo_data,        # <--- Para {geo_contexto}
+        "question": pregunta,            # <--- Para {question}
+        "nombre_usuario": nombre,        # <--- Para {nombre_usuario} (¡No lo borres!)
+        "PERFIL_CLINICO": PERFIL_CLINICO,# <--- Para {PERFIL_CLINICO}
+        "chat_history": historial_texto  # <--- Para {chat_history}
     }).content
 
 
@@ -540,5 +542,6 @@ if prompt_usuario:
 # Verificamos si existe el módulo antes de llamarlo
 if 'social_view' in globals():
     social_view.mostrar_mapa_central()
+
 
 
