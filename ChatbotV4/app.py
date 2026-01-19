@@ -88,12 +88,8 @@ def renderizar_planificador_interno():
             
             modelo = cargar_cerebro_planificador()
             
-            if modelo:
+            if modelo:                
                 
-                # === NUEVO: CÓDIGO TEMPORAL DE ESPÍA ===
-                st.write("🔑 Nombres encontrados dentro de HabitModel:")
-                st.write(modelo.__dict__.keys())
-                # ========================================
                 mapa_estres = {"Bajo": 0, "Medio": 1, "Alto": 2}
                 mapa_ejercicio = {"Nada": 0, "Poco": 1, "Mucho": 2}
                 
@@ -104,11 +100,18 @@ def renderizar_planificador_interno():
                 # Nota: El modelo espera una lista de listas [[...]]
                 datos_entrada = np.array([[energia, sueno, val_estres, val_ejercicio]])
                 
-                try:
-                    # --- PREDICCIÓN MATEMÁTICA ---
-                    # predict_proba devuelve algo como [0.2, 0.8] -> (Probabilidad de fallo, Probabilidad de éxito)
-                    # Tomamos el [0][1] que es la probabilidad de éxito
-                    probabilidad = modelo.model.predict_proba(datos_entrada)[0][1]
+               try:
+                    # --- PASO 1: ESCALADO (Normalizar datos) ---
+                    # El modelo necesita los datos en la misma escala que aprendió
+                    datos_escalados = modelo.scaler.transform(datos_entrada)
+                    
+                    # --- PASO 2: PCA (Reducción de dimensiones) ---
+                    # El modelo espera 20 características, no 4. El PCA hace esa magia.
+                    datos_pca = modelo.pca.transform(datos_escalados)
+                    
+                    # --- PASO 3: PREDICCIÓN (Usando xgb_model) ---
+                    # Ahora sí, le preguntamos al cerebro correcto: 'xgb_model'
+                    probabilidad = modelo.xgb_model.predict_proba(datos_pca)[0][1]
                     
                     score_final = int(probabilidad * 100)
                     
@@ -125,12 +128,9 @@ def renderizar_planificador_interno():
                     st.success("✅ Datos enviados al Chatbot. ¡Ve a preguntarle!")
                     
                 except Exception as e:
-                    st.error(f"Error matemático en el modelo: {e}")
-                    st.warning("Revisa que el modelo 'habit_model.pkl' coincida con estos 4 datos.")
-            
-            else:
-                st.error("❌ No se encontró el archivo 'habit_model.pkl'.")
-                st.caption("Asegúrate de que el archivo esté en la carpeta 'models' o junto a 'app.py'.")
+                    st.error(f"Error en el cálculo: {e}")
+                    # Tip: Si falla aquí, suele ser porque los datos de entrada no coinciden
+                    # con lo que el Scaler espera.
 
 # ==========================================
 # BLOQUE B: TU CÓDIGO CHATBOT
@@ -689,6 +689,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
