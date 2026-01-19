@@ -28,9 +28,7 @@ st.set_page_config(page_title="KIVIA.AI", page_icon="🧬", layout="wide")
 # Parche para encontrar archivos
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# ==========================================
-# BLOQUE A: LÓGICA DEL PLANIFICADOR (REAL)
-# ==========================================
+
 
 # ==========================================
 # BLOQUE A: LÓGICA DEL PLANIFICADOR
@@ -107,7 +105,7 @@ def renderizar_planificador_interno():
                     # --- PREDICCIÓN MATEMÁTICA ---
                     # predict_proba devuelve algo como [0.2, 0.8] -> (Probabilidad de fallo, Probabilidad de éxito)
                     # Tomamos el [0][1] que es la probabilidad de éxito
-                    probabilidad = modelo.predict_proba(datos_entrada)[0][1]
+                    probabilidad = modelo.model.predict_proba(datos_entrada)[0][1]
                     
                     score_final = int(probabilidad * 100)
                     
@@ -688,6 +686,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
