@@ -1,6 +1,6 @@
 
 import streamlit as st
-import kivia_backend as backend # Importamos el cerebro que acabamos de actualizar
+import kivia_backend as backend # Importamos el cerebro que acabamos de crear
 
 def renderizar_planificador():
     st.title("🧠 Diagnóstico Profundo Kivia")
