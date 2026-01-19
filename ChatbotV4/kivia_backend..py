@@ -1,10 +1,9 @@
-import pickle
 import numpy as np
+import pickle
 import os
-import pandas as pd
-from datetime import datetime
+import streamlit as st
 
-# --- LÓGICA ORIGINAL DE MODELO_V2.PY (Necesaria para cargar el pickle) ---
+# --- 1. CLASES DEL MODELO ORIGINAL ---
 class ModelConfig:
     def __init__(self):
         self.n_components = 20
@@ -13,65 +12,63 @@ class ModelConfig:
         self.recommendation_accuracy_target = 0.75
         self.regression_r2_target = 0.70
 
-# --- LÓGICA DE SERVICIO.PY ADAPTADA ---
-def cargar_modelo_entrenado():
-    """Carga el modelo desde la carpeta models/"""
-    ruta_modelo = os.path.join("models", "habit_model.pkl")
-    
-    if not os.path.exists(ruta_modelo):
-        return None, "No se encuentra el archivo models/habit_model.pkl"
-    
-    try:
-        with open(ruta_modelo, "rb") as f:
-            modelo = pickle.load(f)
-        return modelo, "OK"
-    except Exception as e:
-        return None, str(e)
+class HabitModel:
+    def __init__(self):
+        self.config = ModelConfig()
+        self.pca = None
+        self.scaler = None
+        self.xgb_model = None       
+        self.regression_model = None 
+        self.trained = False
 
-def analizar_perfil_usuario(features_list):
-    """
-    Recibe la lista de 50 números (features) y devuelve el dict con resultados.
-    Esta es la misma lógica que tenías en tu endpoint /api/analyze
-    """
-    modelo, mensaje = cargar_modelo_entrenado()
+# --- 2. CARGA DEL CEREBRO ---
+@st.cache_resource
+def cargar_cerebro_completo():
+    # Busca en la carpeta raíz y en 'models'
+    ruta_app = os.path.dirname(os.path.abspath(__file__))
+    rutas = [
+        os.path.join(ruta_app, "habit_model.pkl"), 
+        os.path.join(ruta_app, "models", "habit_model.pkl")
+    ]
     
-    if modelo is None:
-        return {"error": mensaje}
+    for ruta in rutas:
+        if os.path.exists(ruta):
+            try:
+                with open(ruta, "rb") as f:
+                    return pickle.load(f)
+            except: continue
+    return None
 
-    try:
-        # 1. Preprocesamiento (Igual que en servicio.py)
-        # Convertir a numpy array y asegurar forma (1, 50)
-        features = np.array(features_list).reshape(1, -1)
-        
-        # 2. Pipeline de transformación
-        if hasattr(modelo, 'scaler'):
-            features_scaled = modelo.scaler.transform(features)
-        else:
-            features_scaled = features
-            
-        if hasattr(modelo, 'pca'):
-            features_pca = modelo.pca.transform(features_scaled)
-        else:
-            features_pca = features_scaled
-            
-        # 3. Predicciones
-        probabilidad = modelo.xgb_model.predict_proba(features_pca)[0, 1]
-        score = modelo.regression_model.predict(features_pca)[0]
-        
-        # Limitar score a 0-100
-        score = max(0, min(100, float(score)))
-        
-        # 4. Generar Interpretación (Tu lógica original)
-        recomendacion = "Mantener rutina actual"
-        if score < 50: recomendacion = "Necesita cambios urgentes en sueño y actividad."
-        elif score < 80: recomendacion = "Vas bien, ajusta pequeños hábitos."
-        
-        return {
-            "kivia_score": round(score, 1),
-            "probabilidad_adopcion": round(float(probabilidad), 2),
-            "recomendacion": recomendacion,
-            "energia_predicha": "Alta" if features_list[0] > 0.6 else "Baja" # Simplificación
-        }
-            
-    except Exception as e:
-        return {"error": f"Error en cálculo matemático: {e}"}
+# --- 3. LOGICA DE TRADUCCION (La magia de Flask) ---
+def procesar_cuestionario_inteligente(respuestas):
+    """
+    Convierte el diccionario de respuestas humanas en el vector de 50 numeros.
+    """
+    # 1. Vector base
+    features = np.zeros((1, 50))
+    
+    # 2. Extraer valores (0.0 a 1.0)
+    energia = respuestas.get("energia", 0.5)
+    sueño = respuestas.get("sueño", 0.5)
+    estres = respuestas.get("estres", 0.5)
+    ejercicio = respuestas.get("ejercicio", 0.0)
+    animo = respuestas.get("animo", 0.5)
+    disciplina = respuestas.get("disciplina", 0.5)
+    
+    # 3. Asignar a las posiciones principales (Feature Engineering)
+    features[0, 0] = energia
+    features[0, 1] = sueño
+    features[0, 2] = estres
+    features[0, 3] = ejercicio
+    features[0, 4] = animo
+    features[0, 5] = disciplina
+    
+    # 4. Relleno Inteligente (Simulación de comportamiento)
+    promedio_general = (energia + sueño + (1-estres) + ejercicio + animo) / 5
+    
+    # Rellenamos bloques latentes con lógica difusa
+    features[0, 10:20] = disciplina * 0.8 + np.random.normal(0, 0.05, 10) # Consistencia
+    features[0, 20:30] = (sueño + (1-estres))/2 + np.random.normal(0, 0.05, 10) # Bienestar
+    features[0, 40:50] = promedio_general # Tendencia general
+    
+    return features
