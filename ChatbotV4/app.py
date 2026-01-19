@@ -19,6 +19,10 @@ from langchain_core.documents import Document
 from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
 
+# Muestra qué archivos ve realmente Python en la carpeta
+st.write("📂 Archivos en esta carpeta:", os.listdir(os.path.dirname(os.path.abspath(__file__))))
+st.write("📍 Ruta actual:", os.getcwd())
+
 # --- MÓDULOS PROPIOS (Tu arquitectura modular) ---
 # Aseguramos que Python encuentre tus archivos
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -418,6 +422,7 @@ def main():
 # PUNTO DE ENTRADA
 if __name__ == "__main__":
     main()
+
 
 
 
