@@ -43,9 +43,9 @@ class ModelConfig:
 def cargar_cerebro_planificador():
     # Lista de lugares donde buscar el archivo
     rutas = [
-        "models/habit_model.pkl", 
-        "ChatbotV4/models/habit_model.pkl", 
-        "habit_model.pkl"
+    "habit_model.pkl",  # <--- AHORA BUSCARÁ AQUÍ PRIMERO
+    "models/habit_model.pkl",
+    os.path.join(os.getcwd(), "habit_model.pkl")
     ]
     
     # Buscamos la primera ruta que exista
@@ -680,6 +680,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
