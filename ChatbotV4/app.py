@@ -41,25 +41,33 @@ class ModelConfig:
 # 2. Cargamos el archivo .pkl
 @st.cache_resource
 def cargar_cerebro_planificador():
-    # Lista de lugares donde buscar el archivo
-    rutas = [
-    "habit_model.pkl",  # <--- AHORA BUSCARÁ AQUÍ PRIMERO
-    "models/habit_model.pkl",
-    os.path.join(os.getcwd(), "habit_model.pkl")
-    ]
+    # Obtenemos la ruta absoluta de DONDE está este archivo app.py
+    ruta_app = os.path.dirname(os.path.abspath(__file__))
     
-    # Buscamos la primera ruta que exista
-    ruta_real = next((r for r in rutas if os.path.exists(r)), None)
+    # Construimos la ruta exacta al modelo asumiendo que está AL LADO de app.py
+    ruta_modelo = os.path.join(ruta_app, "habit_model.pkl")
     
-    if not ruta_real: 
-        return None
+    # Debug: Imprimir dónde lo estamos buscando (aparecerá en la consola o interfaz)
+    # st.write(f"Buscando modelo en: {ruta_modelo}") 
+    
+    if os.path.exists(ruta_modelo):
+        try:
+            with open(ruta_modelo, "rb") as f: 
+                return pickle.load(f)
+        except Exception as e:
+            st.error(f"El archivo existe pero falló al leer: {e}")
+            return None
+    else:
+        # Intento secundario: buscar en carpeta models si existe
+        ruta_modelo_v2 = os.path.join(ruta_app, "models", "habit_model.pkl")
+        if os.path.exists(ruta_modelo_v2):
+             with open(ruta_modelo_v2, "rb") as f: 
+                return pickle.load(f)
         
-    try:
-        with open(ruta_real, "rb") as f: 
-            return pickle.load(f)
-    except Exception as e:
-        print(f"Error cargando modelo: {e}")
+        # Si llegamos aquí, es que de verdad no lo encuentra
+        st.error(f"❌ ERROR CRÍTICO: No encuentro el archivo en: `{ruta_modelo}`")
         return None
+
 
 # 3. La Interfaz que calcula de verdad
 def renderizar_planificador_interno():
@@ -680,6 +688,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
