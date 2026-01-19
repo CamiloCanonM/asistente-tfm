@@ -18,3 +18,4 @@ streamlit-js-eval
 folium
 streamlit-folium
 scikit-learn
+xgboost
