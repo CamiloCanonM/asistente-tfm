@@ -1,107 +1,66 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KIVIA.AI - Tu Asistente de Salud</title>
+    <title>KIVIA.AI - Acceso</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            color: #333;
-            text-align: center;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 50px 20px;
-        }
-        .logo {
-            font-size: 3rem;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-        .tagline {
-            font-size: 1.5rem;
-            color: #555;
-            margin-bottom: 40px;
-        }
-        .features {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            margin-bottom: 40px;
-        }
-        .feature-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            width: 200px;
-            margin: 10px;
-        }
-        .btn {
-            background-color: #ff4b4b; /* Color Streamlit */
-            color: white;
-            padding: 15px 30px;
-            text-decoration: none;
-            border-radius: 50px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(255, 75, 75, 0.4);
-            transition: transform 0.2s;
-        }
-        .btn:hover {
-            transform: scale(1.05);
-            background-color: #d43b3b;
-        }
-        footer {
-            margin-top: 50px;
-            font-size: 0.8rem;
-            color: #777;
-        }
+        /* Mismos estilos bonitos de antes... */
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #f5f7fa, #c3cfe2); text-align: center; padding: 20px; }
+        .container { max-width: 500px; margin: 50px auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .btn { background-color: #ff4b4b; color: white; padding: 15px 30px; border: none; border-radius: 50px; font-size: 1.2rem; cursor: pointer; width: 100%; margin-top: 20px; transition: 0.3s; }
+        .btn:hover { background-color: #d43b3b; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div class="logo">🧬 KIVIA.AI</div>
-        <p class="tagline">Asistencia inteligente para el cuidado del adulto mayor.</p>
+        <h1>🧬 Ingreso a KIVIA</h1>
+        <p>Completa tus datos para personalizar tu asistente.</p>
 
-        <a href="https://asistente-chatbotv4.streamlit.app/" target="_blank" class="btn">
-            🚀 PROBAR APLICACIÓN
-        </a>
+        <input type="text" id="nombre" placeholder="Tu Nombre" required>
+        
+        <select id="rol">
+            <option value="Paciente">Paciente / Adulto Mayor</option>
+            <option value="Cuidador">Cuidador / Familiar</option>
+            <option value="Medico">Personal Médico</option>
+        </select>
 
-        <br><br><br>
+        <input type="text" id="ubicacion" placeholder="Tu Ciudad (Ej: Bogotá)" required>
 
-        <div class="features">
-            <div class="feature-card">
-                <h3>🗣️ Voz y Texto</h3>
-                <p>Interactúa de forma natural hablando o escribiendo.</p>
-            </div>
-            <div class="feature-card">
-                <h3>👁️ Visión IA</h3>
-                <p>Reconocimiento de medicamentos mediante cámara.</p>
-            </div>
-            <div class="feature-card">
-                <h3>🗺️ Mapa Social</h3>
-                <p>Encuentra farmacias y hospitales cercanos.</p>
-            </div>
-        </div>
-
-        <p><em>Un proyecto de Tecnología para la Silver Economy.</em></p>
-
-        <footer>
-            &copy; 2024 KIVIA Project. Hosted on GitHub.
-        </footer>
+        <button onclick="irALaApp()" class="btn">🚀 ENTRAR AL CHAT</button>
     </div>
+
+    <script>
+        function irALaApp() {
+            // 1. Capturamos los datos
+            var nombre = document.getElementById('nombre').value;
+            var rol = document.getElementById('rol').value;
+            var ubicacion = document.getElementById('ubicacion').value;
+
+            // 2. Validación simple
+            if(nombre === "" || ubicacion === "") {
+                alert("Por favor, escribe tu nombre y ciudad.");
+                return;
+            }
+
+            // 3. Construimos la URL con los datos "en los vagones"
+            // encodeURIComponent sirve para arreglar espacios y tildes
+            var urlBase = "https://asistente-chatbotv4.streamlit.app/";
+            var urlFinal = urlBase + "?nombre=" + encodeURIComponent(nombre) + 
+                           "&rol=" + encodeURIComponent(rol) + 
+                           "&ubicacion=" + encodeURIComponent(ubicacion);
+
+            // 4. Enviamos al usuario
+            window.location.href = urlFinal;
+        }
+    </script>
 
 </body>
 </html>
+
 
 
 
