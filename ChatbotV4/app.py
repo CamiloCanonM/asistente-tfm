@@ -19,9 +19,6 @@ from langchain_core.documents import Document
 from streamlit_mic_recorder import mic_recorder
 from openai import OpenAI
 
-# Muestra qué archivos ve realmente Python en la carpeta
-st.write("📂 Archivos en esta carpeta:", os.listdir(os.path.dirname(os.path.abspath(__file__))))
-st.write("📍 Ruta actual:", os.getcwd())
 
 # --- MÓDULOS PROPIOS (Tu arquitectura modular) ---
 # Aseguramos que Python encuentre tus archivos
@@ -30,7 +27,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import social_view      # Mapas
 import docs_view        # Gestor de archivos
 import apariencia       # Estilos CSS
-import planificador_iu  # La vista del cuestionario nuevo
+import planificador_ui  # La vista del cuestionario nuevo
 # kivia_backend se usa dentro de planificador_iu, no hace falta importarlo aquí directamente
 
 # ==========================================
@@ -413,7 +410,7 @@ def main():
     
     if menu == "📊 Planificador de Hábitos":
         # Llamada limpia al módulo que creamos
-        planificador_iu.renderizar_planificador()
+        planificador_ui.renderizar_planificador()
 
     elif menu == "🤖 Chatbot IA":
         # Llamada a la función encapsulada del chat
@@ -422,6 +419,7 @@ def main():
 # PUNTO DE ENTRADA
 if __name__ == "__main__":
     main()
+
 
 
 
