@@ -29,36 +29,99 @@ st.set_page_config(page_title="KIVIA.AI", page_icon="🧬", layout="wide")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # ==========================================
-# BLOQUE A: LÓGICA DEL PLANIFICADOR
+# BLOQUE A: LÓGICA DEL PLANIFICADOR (REAL)
 # ==========================================
+import numpy as np # Asegúrate de tener este import
+
+# 1. Definimos la estructura que usa el modelo (Obligatorio para pickle)
 class ModelConfig:
     def __init__(self):
         self.n_components = 20
 
+# 2. Cargamos el archivo .pkl
 @st.cache_resource
 def cargar_cerebro_planificador():
-    rutas = ["models/habit_model.pkl", "ChatbotV4/models/habit_model.pkl", "habit_model.pkl"]
-    ruta = next((r for r in rutas if os.path.exists(r)), None)
-    if not ruta: return None
+    # Lista de lugares donde buscar el archivo
+    rutas = [
+        "models/habit_model.pkl", 
+        "ChatbotV4/models/habit_model.pkl", 
+        "habit_model.pkl"
+    ]
+    
+    # Buscamos la primera ruta que exista
+    ruta_real = next((r for r in rutas if os.path.exists(r)), None)
+    
+    if not ruta_real: 
+        return None
+        
     try:
-        with open(ruta, "rb") as f: return pickle.load(f)
-    except: return None
+        with open(ruta_real, "rb") as f: 
+            return pickle.load(f)
+    except Exception as e:
+        print(f"Error cargando modelo: {e}")
+        return None
 
+# 3. La Interfaz que calcula de verdad
 def renderizar_planificador_interno():
     st.title("📊 Planificador de Hábitos")
+    st.info("Configura tu estado actual para predecir tu éxito.")
+
     with st.container(border=True):
         c1, c2 = st.columns(2)
-        energia = c1.slider("Nivel de Energía", 0, 100, 50)
-        sueno = c2.slider("Calidad de Sueño", 0, 100, 50)
-        estres = c1.select_slider("Estrés", ["Bajo", "Medio", "Alto"])
-        ejercicio = c2.select_slider("Ejercicio", ["Nada", "Poco", "Mucho"])
         
-        if st.button("🚀 Analizar", type="primary", use_container_width=True):
+        # --- INPUTS (DATOS DE ENTRADA) ---
+        energia = c1.slider("Nivel de Energía (0-100)", 0, 100, 50)
+        sueno = c2.slider("Calidad de Sueño (0-100)", 0, 100, 50)
+        
+        # Selectores de texto
+        estres_txt = c1.select_slider("Nivel de Estrés", ["Bajo", "Medio", "Alto"])
+        ejercicio_txt = c2.select_slider("Ejercicio Semanal", ["Nada", "Poco", "Mucho"])
+        
+        if st.button("🚀 Calcular Probabilidad Real", type="primary", use_container_width=True):
+            
             modelo = cargar_cerebro_planificador()
-            # Simulación de resultado si no hay modelo, para que no falle
-            score = 85 
-            st.session_state['kivia_data'] = {"score": score, "prob": 0.88}
-            st.success("¡Analizado! Ve al Chatbot.")
+            
+            if modelo:
+                # --- PASO CRÍTICO: TRADUCCIÓN A NÚMEROS ---
+                # Convertimos texto a números que el modelo entienda
+                # (Ajusta estos valores 0,1,2 si tu modelo se entrenó distinto)
+                mapa_estres = {"Bajo": 0, "Medio": 1, "Alto": 2}
+                mapa_ejercicio = {"Nada": 0, "Poco": 1, "Mucho": 2}
+                
+                val_estres = mapa_estres[estres_txt]
+                val_ejercicio = mapa_ejercicio[ejercicio_txt]
+                
+                # Creamos el vector numérico [Energia, Sueño, Estrés, Ejercicio]
+                # Nota: El modelo espera una lista de listas [[...]]
+                datos_entrada = np.array([[energia, sueno, val_estres, val_ejercicio]])
+                
+                try:
+                    # --- PREDICCIÓN MATEMÁTICA ---
+                    # predict_proba devuelve algo como [0.2, 0.8] -> (Probabilidad de fallo, Probabilidad de éxito)
+                    # Tomamos el [0][1] que es la probabilidad de éxito
+                    probabilidad = modelo.predict_proba(datos_entrada)[0][1]
+                    
+                    score_final = int(probabilidad * 100)
+                    
+                    # Guardamos en memoria para el Chatbot
+                    st.session_state['kivia_data'] = {
+                        "score": score_final, 
+                        "prob": round(probabilidad, 2)
+                    }
+                    
+                    # Mostramos resultado
+                    color = "green" if score_final > 70 else "orange"
+                    st.markdown(f"### Probabilidad de Éxito: :{color}[{score_final}%]")
+                    st.progress(score_final / 100)
+                    st.success("✅ Datos enviados al Chatbot. ¡Ve a preguntarle!")
+                    
+                except Exception as e:
+                    st.error(f"Error matemático en el modelo: {e}")
+                    st.warning("Revisa que el modelo 'habit_model.pkl' coincida con estos 4 datos.")
+            
+            else:
+                st.error("❌ No se encontró el archivo 'habit_model.pkl'.")
+                st.caption("Asegúrate de que el archivo esté en la carpeta 'models' o junto a 'app.py'.")
 
 # ==========================================
 # BLOQUE B: TU CÓDIGO CHATBOT
@@ -617,6 +680,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
