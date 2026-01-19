@@ -77,12 +77,28 @@ def vista_chatbot():
     usuario_edad = params.get("edad", "No especificada")
     usuario_peso = params.get("peso", "No especificado")
     usuario_condicion = params.get("condicion", "Ninguna")
+
+
+    #  ---RECUPERAR DATOS DEL PLANIFICADOR
+   
+    info_planificador = ""
+    if 'kivia_data' in st.session_state:
+        datos = st.session_state['kivia_data']
+        info_planificador = f"""
+        RESULTADOS DEL PLANIFICADOR DE HÁBITOS:
+        - Puntaje de Salud: {datos.get('score', 'N/A')}/100
+        - Probabilidad de Adherencia: {datos.get('prob', 'N/A')}
+        (Usa estos datos para felicitar o aconsejar al usuario si pregunta por su análisis).
+        """
+    # =======================================================
     
     PERFIL_CLINICO = f"""
     - Nombre: {usuario_nombre}
     - Edad: {usuario_edad}
     - Peso: {usuario_peso}
     - Condición: {usuario_condicion}
+
+    {info_planificador}  <-- ¡AQUÍ INYECTAMOS LOS DATOS!
     """
     
     if st.secrets.get("ESTADO_DEL_CHAT", "true") == "false":
@@ -601,6 +617,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
