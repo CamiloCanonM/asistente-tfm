@@ -39,10 +39,10 @@ def cargar_cerebro_completo():
             except: continue
     return None
 
-# --- 3. LOGICA DE TRADUCCION (La magia de Flask) ---
+# --- 3. LÓGICA DE TRADUCCIÓN (De tu app_flask.py) ---
 def procesar_cuestionario_inteligente(respuestas):
     """
-    Convierte el diccionario de respuestas humanas en el vector de 50 numeros.
+    Convierte las respuestas humanas en el vector de 50 números.
     """
     # 1. Vector base
     features = np.zeros((1, 50))
@@ -55,7 +55,7 @@ def procesar_cuestionario_inteligente(respuestas):
     animo = respuestas.get("animo", 0.5)
     disciplina = respuestas.get("disciplina", 0.5)
     
-    # 3. Asignar a las posiciones principales (Feature Engineering)
+    # 3. Asignar a las posiciones principales
     features[0, 0] = energia
     features[0, 1] = sueño
     features[0, 2] = estres
