@@ -72,6 +72,15 @@ def renderizar_planificador_interno():
     st.title("📊 Planificador de Hábitos")
     st.info("Configura tu estado actual para predecir tu éxito.")
 
+    if modelo:
+                # === NUEVO: CÓDIGO TEMPORAL DE ESPÍA ===
+                st.write("🔑 Nombres encontrados dentro de HabitModel:")
+                st.write(modelo.__dict__.keys())
+                # ========================================
+
+                # ... aquí seguía tu código de traducción ...
+                mapa_estres = {"Bajo": 0, "Medio": 1, "Alto": 2}
+
     with st.container(border=True):
         c1, c2 = st.columns(2)
         
@@ -686,6 +695,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
