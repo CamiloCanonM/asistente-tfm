@@ -1,59 +1,107 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KIVIA - Asistente IA</title>
+    <title>KIVIA.AI - Tu Asistente de Salud</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f2f6; /* Color de fondo suave */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            text-align: center;
         }
         .container {
-            text-align: center;
-            background-color: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 90%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 50px 20px;
         }
-        h1 { color: #0083B8; }
-        p { color: #666; font-size: 18px; margin-bottom: 30px; }
-        .btn-chat {
-            background-color: #FF4B4B; /* Color rojo estilo Streamlit */
-            color: white;
-            padding: 15px 32px;
-            text-decoration: none;
-            font-size: 18px;
-            border-radius: 8px;
+        .logo {
+            font-size: 3rem;
             font-weight: bold;
-            display: inline-block;
-            transition: background-color 0.3s;
+            color: #2c3e50;
+            margin-bottom: 10px;
         }
-        .btn-chat:hover { background-color: #ff3333; }
+        .tagline {
+            font-size: 1.5rem;
+            color: #555;
+            margin-bottom: 40px;
+        }
+        .features {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+        .feature-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 200px;
+            margin: 10px;
+        }
+        .btn {
+            background-color: #ff4b4b; /* Color Streamlit */
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 75, 75, 0.4);
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            background-color: #d43b3b;
+        }
+        footer {
+            margin-top: 50px;
+            font-size: 0.8rem;
+            color: #777;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Bienvenido a KIVIA</h1>
-        <p>Tu asistente inteligente para el cuidado del adulto mayor.</p>
-        
-        <a href="https://asistente-chatbotv4.streamlit.app/" class="btn-chat">
-           INICIAR ASISTENTE
+        <div class="logo">🧬 KIVIA.AI</div>
+        <p class="tagline">Asistencia inteligente para el cuidado del adulto mayor.</p>
+
+        <a href="https://asistente-chatbotv4.streamlit.app/" target="_blank" class="btn">
+            🚀 PROBAR APLICACIÓN
         </a>
+
+        <br><br><br>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3>🗣️ Voz y Texto</h3>
+                <p>Interactúa de forma natural hablando o escribiendo.</p>
+            </div>
+            <div class="feature-card">
+                <h3>👁️ Visión IA</h3>
+                <p>Reconocimiento de medicamentos mediante cámara.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🗺️ Mapa Social</h3>
+                <p>Encuentra farmacias y hospitales cercanos.</p>
+            </div>
+        </div>
+
+        <p><em>Un proyecto de Tecnología para la Silver Economy.</em></p>
+
+        <footer>
+            &copy; 2024 KIVIA Project. Hosted on GitHub.
+        </footer>
     </div>
 
 </body>
 </html>
-
 
 
 
