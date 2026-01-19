@@ -32,9 +32,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # ==========================================
 # BLOQUE A: PLANIFICADOR (Lógica Frontend Flask + Backend Original)
 # ==========================================
-import numpy as np
-import pickle
-import os
+
 
 # --- 1. CLASES ORIGINALES (Indispensables para el pickle) ---
 class ModelConfig:
@@ -890,6 +888,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
