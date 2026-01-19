@@ -3,63 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KIVIA.AI - Acceso</title>
+    <title>KIVIA.AI - Configuración de Perfil</title>
     <style>
-        /* Mismos estilos bonitos de antes... */
-        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #f5f7fa, #c3cfe2); text-align: center; padding: 20px; }
-        .container { max-width: 500px; margin: 50px auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        .btn { background-color: #ff4b4b; color: white; padding: 15px 30px; border: none; border-radius: 50px; font-size: 1.2rem; cursor: pointer; width: 100%; margin-top: 20px; transition: 0.3s; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; font-size: 0.9rem; }
+        
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; font-size: 0.9rem; }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box; /* Importante para que no se salga */
+        }
+        .btn {
+            background-color: #ff4b4b;
+            color: white;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
         .btn:hover { background-color: #d43b3b; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>🧬 Ingreso a KIVIA</h1>
-        <p>Completa tus datos para personalizar tu asistente.</p>
+    <div class="login-card">
+        <h1>🧬 KIVIA.AI</h1>
+        <p>Ingresa tus datos clínicos para personalizar la asistencia.</p>
 
-        <input type="text" id="nombre" placeholder="Tu Nombre" required>
-        
-        <select id="rol">
-            <option value="Paciente">Paciente / Adulto Mayor</option>
-            <option value="Cuidador">Cuidador / Familiar</option>
-            <option value="Medico">Personal Médico</option>
-        </select>
+        <div class="input-group">
+            <label>Nombre del Paciente</label>
+            <input type="text" id="nombre" placeholder="Ej: María Pérez">
+        </div>
 
-        <input type="text" id="ubicacion" placeholder="Tu Ciudad (Ej: Bogotá)" required>
+        <div class="input-group">
+            <label>Edad</label>
+            <input type="number" id="edad" placeholder="Ej: 75">
+        </div>
 
-        <button onclick="irALaApp()" class="btn">🚀 ENTRAR AL CHAT</button>
+        <div class="input-group">
+            <label>Peso (kg)</label>
+            <input type="text" id="peso" placeholder="Ej: 70kg">
+        </div>
+
+        <div class="input-group">
+            <label>Condición Médica Principal</label>
+            <input type="text" id="condicion" placeholder="Ej: Diabetes Tipo 2, Hipertensión...">
+        </div>
+
+        <button onclick="conectarConApp()" class="btn">INICIAR ASISTENTE 🚀</button>
     </div>
 
     <script>
-        function irALaApp() {
-            // 1. Capturamos los datos
-            var nombre = document.getElementById('nombre').value;
-            var rol = document.getElementById('rol').value;
-            var ubicacion = document.getElementById('ubicacion').value;
+        function conectarConApp() {
+            // 1. Obtener valores
+            const nombre = document.getElementById('nombre').value;
+            const edad = document.getElementById('edad').value;
+            const peso = document.getElementById('peso').value;
+            const condicion = document.getElementById('condicion').value;
 
-            // 2. Validación simple
-            if(nombre === "" || ubicacion === "") {
-                alert("Por favor, escribe tu nombre y ciudad.");
+            // 2. Validar (al menos el nombre)
+            if (!nombre) {
+                alert("Por favor, ingresa al menos el nombre.");
                 return;
             }
 
-            // 3. Construimos la URL con los datos "en los vagones"
-            // encodeURIComponent sirve para arreglar espacios y tildes
-            var urlBase = "https://asistente-chatbotv4.streamlit.app/";
-            var urlFinal = urlBase + "?nombre=" + encodeURIComponent(nombre) + 
-                           "&rol=" + encodeURIComponent(rol) + 
-                           "&ubicacion=" + encodeURIComponent(ubicacion);
-
-            // 4. Enviamos al usuario
-            window.location.href = urlFinal;
+            // 3. Crear URL mágica
+            // Usamos encodeURIComponent para que los espacios y tildes no rompan el link
+            const baseUrl = "https://asistente-chatbotv4.streamlit.app/";
+            const params = `?nombre=${encodeURIComponent(nombre)}&edad=${encodeURIComponent(edad)}&peso=${encodeURIComponent(peso)}&condicion=${encodeURIComponent(condicion)}`;
+            
+            // 4. Redirigir
+            window.location.href = baseUrl + params;
         }
     </script>
 
 </body>
 </html>
+
 
 
 
