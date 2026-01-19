@@ -1,0 +1,18 @@
+{
+  "last_trained": "2025-12-21T22:31:24.814123",
+  "metrics": {
+    "pca_variance": 0.85683539897154,
+    "xgb_auc": 0.882609577922078,
+    "bert_embeddings_generated": true,
+    "recommendation_accuracy": 0.82,
+    "regression_r2": 0.9244605342860961
+  },
+  "trained": true,
+  "config": {
+    "n_components": 20,
+    "pca_variance_threshold": 0.85,
+    "xgb_auc_target": 0.8,
+    "recommendation_accuracy_target": 0.75,
+    "regression_r2_target": 0.7
+  }
+}
