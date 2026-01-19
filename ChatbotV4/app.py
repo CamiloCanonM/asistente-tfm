@@ -29,43 +29,135 @@ st.set_page_config(page_title="KIVIA.AI", page_icon="🧬", layout="wide")
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 
-
 # ==========================================
-# BLOQUE A: LÓGICA DEL PLANIFICADOR
+# BLOQUE A: LÓGICA DEL PLANIFICADOR (BACKEND INTEGRADO)
 # ==========================================
 import numpy as np
+import pandas as pd
+import pickle
+import os
 
-# --- 1. DEFINICIÓN DE CLASES (CRÍTICO PARA PICKLE) ---
-# Tienes que poner esto EXACTAMENTE así para que el pickle funcione
-class HabitModel:
-    def __init__(self):
-        # Definimos los atributos vacíos, el pickle los rellenará
-        self.model = None
-        self.scaler = None
-        # Si tu modelo usaba PCA u otras cosas, agrégalas aquí si es necesario
-        # Pero normalmente con definir la clase vacía basta para que no explote.
-        pass
-
+# --- 1. CLASES ESPEJO (Del archivo modelo.py) ---
+# Necesarias para abrir el pickle correctamente.
 class ModelConfig:
     def __init__(self):
         self.n_components = 20
+        self.pca_variance_threshold = 0.85
+        self.xgb_auc_target = 0.80
+        self.recommendation_accuracy_target = 0.75
+        self.regression_r2_target = 0.70
 
-# --- 2. CARGAR EL CEREBRO ---
+class HabitModel:
+    def __init__(self):
+        self.config = ModelConfig()
+        self.pca = None
+        self.scaler = None
+        self.xgb_model = None       
+        self.regression_model = None 
+        self.trained = False
+
+# --- 2. FUNCIÓN DE CARGA (Simulando el inicio de servicio.py) ---
 @st.cache_resource
-def cargar_cerebro_planificador():
-    # ... (aquí va tu código de carga que ya tenías) ...
-    # Asegúrate de usar la versión corregida que busca en la misma carpeta:
+def cargar_cerebro_backend():
+    # Busca el archivo en la ruta raíz o en models/
     ruta_app = os.path.dirname(os.path.abspath(__file__))
-    ruta_modelo = os.path.join(ruta_app, "habit_model.pkl")
+    posibles_rutas = [
+        os.path.join(ruta_app, "habit_model.pkl"),
+        os.path.join(ruta_app, "models", "habit_model.pkl")
+    ]
     
-    if os.path.exists(ruta_modelo):
-        try:
-            with open(ruta_modelo, "rb") as f: 
-                return pickle.load(f)
-        except Exception as e:
-            st.error(f"Error leyendo pickle: {e}")
-            return None
-    return 
+    for ruta in posibles_rutas:
+        if os.path.exists(ruta):
+            try:
+                with open(ruta, "rb") as f:
+                    return pickle.load(f)
+            except Exception as e:
+                st.error(f"Error técnico leyendo el modelo: {e}")
+                return None
+    return None
+
+# --- 3. FRONTEND + LÓGICA DE SERVICIO ---
+def renderizar_planificador_interno():
+    st.title("📊 Planificador de Hábitos")
+    st.markdown("Sistema experto basado en **XGBoost & PCA**.")
+
+    # Contenedor visual del Frontend
+    with st.container(border=True):
+        c1, c2 = st.columns(2)
+        
+        # Inputs (Interfaz de Usuario)
+        energy = c1.slider("Nivel de Energía (0-100)", 0, 100, 60)
+        sleep = c2.slider("Calidad de Sueño (0-100)", 0, 100, 70)
+        
+        stress = c1.select_slider("Nivel de Estrés", options=["Bajo", "Medio", "Alto"], value="Medio")
+        exercise = c2.select_slider("Ejercicio Semanal", options=["Nada", "Poco", "Mucho"], value="Poco")
+
+        if st.button("🚀 Consultar Probabilidad", type="primary", use_container_width=True):
+            
+            # Aquí comienza la lógica que antes hacía 'servicio.py'
+            modelo = cargar_cerebro_backend()
+            
+            if modelo:
+                try:
+                    # --- PASO 1: Mapeo de datos (Como en servicio.py) ---
+                    map_stress = {"Bajo": 0, "Medio": 1, "Alto": 2}
+                    map_exercise = {"Nada": 0, "Poco": 1, "Mucho": 2}
+                    
+                    val_stress = map_stress[stress]
+                    val_exercise = map_exercise[exercise]
+
+                    # --- PASO 2: Reconstrucción del Vector de 50 (Crucial) ---
+                    # El modelo espera 50 features.
+                    # Simulamos el vector completo, inyectando los datos del usuario al principio.
+                    
+                    # Creamos un vector base (usamos ceros o media para neutralidad)
+                    vector_entrada = np.zeros((1, 50))
+                    
+                    # Asignamos las variables conocidas en las posiciones clave
+                    # (Ajusta los índices si tu entrenamiento usó otro orden)
+                    vector_entrada[0, 0] = energy   # Feature 0
+                    vector_entrada[0, 1] = sleep    # Feature 1
+                    vector_entrada[0, 2] = val_stress * 30   # Feature 2 (Escalado aprox)
+                    vector_entrada[0, 3] = val_exercise * 30 # Feature 3 (Escalado aprox)
+                    
+                    # --- PASO 3: Ejecución del Pipeline (Scaler -> PCA -> Modelos) ---
+                    
+                    # A. Normalización
+                    datos_escalados = modelo.scaler.transform(vector_entrada)
+                    
+                    # B. Reducción de dimensionalidad
+                    datos_pca = modelo.pca.transform(datos_escalados)
+                    
+                    # C. Predicciones
+                    prob_exito = modelo.xgb_model.predict_proba(datos_pca)[0, 1]
+                    
+                    # Predicción del Score Kivia (Regresión)
+                    score_raw = modelo.regression_model.predict(datos_pca)[0]
+                    kivia_score = int(max(0, min(100, score_raw)))
+
+                    # --- PASO 4: Respuesta al Frontend ---
+                    st.session_state['kivia_data'] = {
+                        "score": kivia_score, 
+                        "prob": round(prob_exito, 2)
+                    }
+
+                    # Visualización de resultados
+                    m1, m2 = st.columns(2)
+                    m1.metric("Kivia Score", f"{kivia_score}/100")
+                    m2.metric("Probabilidad", f"{prob_exito:.1%}")
+                    
+                    st.progress(kivia_score / 100)
+                    
+                    if prob_exito > 0.7:
+                        st.success("✅ Análisis completado: Alta probabilidad de éxito.")
+                    else:
+                        st.warning("⚠️ Análisis completado: Se recomienda ajustar hábitos.")
+
+                except Exception as e:
+                    st.error(f"Error en el motor de inferencia: {e}")
+                    st.caption("Verifica que las librerías 'xgboost' y 'scikit-learn' estén instaladas.")
+            else:
+                st.error("❌ Error de conexión: No se encuentra el modelo 'habit_model.pkl'.")
 
 # ==========================================
 # BLOQUE A: LÓGICA DEL PLANIFICADOR (ORIGINAL ADAPTADA)
@@ -755,6 +847,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
