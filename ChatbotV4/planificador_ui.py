@@ -1,90 +1,89 @@
+
 import streamlit as st
-import random
-# Importamos la lógica matemática
-from kivia_backend import analizar_perfil_usuario
-
-# --- TU CUESTIONARIO ORIGINAL ---
-CUESTIONARIO = [
-    {
-        "id": "energia",
-        "pregunta": "¿Cómo calificarías tu nivel de energía?",
-        "opciones": ["Muy bajo", "Bajo", "Moderado", "Alto", "Muy alto"]
-    },
-    {
-        "id": "ejercicio",
-        "pregunta": "¿Frecuencia de actividad física?",
-        "opciones": ["Raramente", "1-2 veces/sem", "3-4 veces/sem", "5+ veces/sem"]
-    },
-    {
-        "id": "sueño",
-        "pregunta": "¿Calidad de sueño?",
-        "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Excelente"]
-    },
-    {
-        "id": "estres",
-        "pregunta": "¿Manejo del estrés?",
-        "opciones": ["Muy mal", "Mal", "Regular", "Bien", "Muy bien"]
-    },
-    {
-        "id": "cronotipo",
-        "pregunta": "¿Eres matutino o nocturno?",
-        "opciones": ["Muy Nocturno", "Nocturno", "Neutral", "Matutino", "Muy Matutino"]
-    }
-]
-
-def procesar_inputs(respuestas):
-    """Convierte texto a vector de 50 números (Lógica Frontend)"""
-    vector = [0.5] * 50
-    # Mapeo simplificado para el ejemplo (Ajustar según tu lógica exacta)
-    indices = {
-        "energia": [0,1,2], "ejercicio": [3,4,5], 
-        "sueño": [6,7,8], "estres": [9,10,11], "cronotipo": [12,13,14]
-    }
-    
-    for key, val in respuestas.items():
-        pregunta = next((p for p in CUESTIONARIO if p["id"] == key), None)
-        if pregunta:
-            idx = pregunta["opciones"].index(val)
-            norm = idx / (len(pregunta["opciones"]) - 1)
-            
-            if key in indices:
-                for i in indices[key]:
-                    vector[i] = max(0, min(1, norm + random.uniform(-0.05, 0.05)))
-    return vector
+import kivia_backend as backend # Importamos el cerebro que acabamos de actualizar
 
 def renderizar_planificador():
-    """Esta función DIBUJA toda la pantalla del planificador"""
-    st.header("📊 Planificador KIVIA")
-    st.markdown("Responde para activar la inteligencia del Chatbot.")
-    
-    with st.container(border=True):
-        respuestas = {}
-        col1, col2 = st.columns(2)
+    st.title("🧠 Diagnóstico Profundo Kivia")
+    st.markdown("Responde este cuestionario para que la IA analice tus patrones ocultos.")
+
+    # --- INICIO DEL FORMULARIO ---
+    with st.form("cuestionario_kivia"):
+        c1, c2 = st.columns(2)
         
-        for i, p in enumerate(CUESTIONARIO):
-            with (col1 if i % 2 == 0 else col2):
-                respuestas[p["id"]] = st.select_slider(p["pregunta"], options=p["opciones"])
+        with c1:
+            st.subheader("⚡ Estado Físico")
+            energia_in = st.select_slider("Nivel de Energía diario", 
+                                        options=["Muy bajo", "Bajo", "Moderado", "Alto", "Muy Alto"], value="Moderado")
+            ejercicio_in = st.select_slider("Frecuencia de Ejercicio", 
+                                          options=["Nunca", "1 día/sem", "3 días/sem", "5+ días/sem"], value="1 día/sem")
+            sueño_in = st.slider("Calidad de Sueño (0-100)", 0, 100, 70)
+
+        with c2:
+            st.subheader("🧘 Estado Mental")
+            estres_in = st.select_slider("Nivel de Estrés", 
+                                       options=["Zen", "Bajo", "Manejable", "Alto", "Crítico"], value="Manejable")
+            animo_in = st.slider("Estado de Ánimo General (0-100)", 0, 100, 60)
+            disciplina_in = st.select_slider("Autodisciplina percibida", 
+                                           options=["Baja", "Variable", "Alta", "Hierro"], value="Variable")
+
+        # Botón de envío (Dentro del form para no recargar a cada click)
+        submitted = st.form_submit_button("🚀 Analizar mis Probabilidades", type="primary")
+
+    # --- PROCESAMIENTO AL ENVIAR ---
+    if submitted:
+        modelo = backend.cargar_cerebro_completo()
         
-        st.write("")
-        if st.button("🚀 Analizar Perfil", type="primary", use_container_width=True):
-            
-            with st.spinner("Procesando con Modelo V2..."):
-                # 1. Convertir visual -> vector
-                vector = procesar_inputs(respuestas)
+        if modelo:
+            try:
+                # 1. Mapeo de Texto a Números
+                map_energia = {"Muy bajo": 0.1, "Bajo": 0.3, "Moderado": 0.5, "Alto": 0.8, "Muy Alto": 1.0}
+                map_ejer = {"Nunca": 0.0, "1 día/sem": 0.3, "3 días/sem": 0.7, "5+ días/sem": 1.0}
+                map_estres = {"Zen": 0.0, "Bajo": 0.2, "Manejable": 0.5, "Alto": 0.8, "Crítico": 1.0}
+                map_disci = {"Baja": 0.2, "Variable": 0.5, "Alta": 0.8, "Hierro": 1.0}
+
+                respuestas_dict = {
+                    "energia": map_energia[energia_in],
+                    "ejercicio": map_ejer[ejercicio_in],
+                    "sueño": sueño_in / 100.0,
+                    "estres": map_estres[estres_in],
+                    "animo": animo_in / 100.0,
+                    "disciplina": map_disci[disciplina_in]
+                }
+
+                # 2. Llamada al Backend para generar el vector de 50
+                vector_50 = backend.procesar_cuestionario_inteligente(respuestas_dict)
+
+                # 3. Predicciones
+                datos_escalados = modelo.scaler.transform(vector_50)
+                datos_pca = modelo.pca.transform(datos_escalados)
                 
-                # 2. Calcular vector -> predicción (Llamada al Backend)
-                resultado = analizar_perfil_usuario(vector)
+                prob_exito = modelo.xgb_model.predict_proba(datos_pca)[0, 1]
+                score_raw = modelo.regression_model.predict(datos_pca)[0]
+                kivia_score = int(max(0, min(100, score_raw)))
+
+                # 4. Guardar en Sesión y Mostrar
+                st.session_state['kivia_data'] = {
+                    "score": kivia_score, 
+                    "prob": round(prob_exito, 2),
+                    "perfil": respuestas_dict
+                }
                 
-                if "error" in resultado:
-                    st.error(resultado["error"])
-                else:
-                    # 3. GUARDAR EN MEMORIA COMPARTIDA (Para el Chatbot)
-                    st.session_state['kivia_data'] = resultado
-                    
-                    st.success("¡Datos procesados!")
-                    m1, m2, m3 = st.columns(3)
-                    m1.metric("Score", resultado['kivia_score'])
-                    m2.metric("Probabilidad", f"{resultado['probabilidad_adopcion']*100:.0f}%")
-                    m3.metric("Energía", resultado['energia_predicha'])
-                    
-                    st.info(f"💡 Consejo: {resultado['recomendacion']}")
+                st.divider()
+                col_res1, col_res2 = st.columns([1, 2])
+                
+                with col_res1:
+                    st.metric("Kivia Score", f"{kivia_score}/100")
+                    st.progress(kivia_score / 100)
+                
+                with col_res2:
+                    if prob_exito > 0.7:
+                        st.success(f"🌟 **Alta Probabilidad ({prob_exito:.0%})**: Tienes el perfil ideal.")
+                    elif prob_exito > 0.4:
+                        st.warning(f"⚖️ **Probabilidad Media ({prob_exito:.0%})**: Se requieren ajustes.")
+                    else:
+                        st.error(f"🛡️ **Probabilidad Baja ({prob_exito:.0%})**: Empieza despacio.")
+
+            except Exception as e:
+                st.error(f"Error en el análisis: {e}")
+        else:
+            st.error("❌ No se encontró el modelo 'habit_model.pkl'.")
