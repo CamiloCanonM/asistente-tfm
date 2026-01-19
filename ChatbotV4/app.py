@@ -100,7 +100,7 @@ def renderizar_planificador_interno():
                 # Nota: El modelo espera una lista de listas [[...]]
                 datos_entrada = np.array([[energia, sueno, val_estres, val_ejercicio]])
                 
-               try:
+            try:
                     # --- PASO 1: ESCALADO (Normalizar datos) ---
                     # El modelo necesita los datos en la misma escala que aprendió
                     datos_escalados = modelo.scaler.transform(datos_entrada)
@@ -689,6 +689,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
