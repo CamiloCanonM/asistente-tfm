@@ -65,15 +65,8 @@ def renderizar_planificador_interno():
 # ==========================================
 
 def vista_chatbot():
-    # --- 1. CONFIGURACIÓN 
     
-    st.set_page_config(
-        page_title="KIVIA.AI",
-        page_icon="logo.png", 
-        layout="wide"
-    )
-    
-    # 2. CARGAR LA APARIENCIA
+    #CARGAR LA APARIENCIA
     apariencia.cargar_estilos_css()  # Inyecta el CSS
     apariencia.mostrar_header()      # Muestra el Logo
     
@@ -608,5 +601,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
