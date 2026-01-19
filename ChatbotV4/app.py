@@ -543,6 +543,78 @@ if prompt_usuario:
 st.divider() # Una línea bonita para separar el chat del mapa
 social_view.mostrar_mapa_central()
 
+# ==========================================
+# 8. planificador
+# ==========================================
 
+import streamlit as st
+import os
+
+
+from planificador_ui import renderizar_planificador
+
+# Configuración básica
+st.set_page_config(page_title="KIVIA App", page_icon="🧬", layout="wide")
+
+def main():
+    # BARRA LATERAL (Menú)
+    with st.sidebar:
+        st.title("KIVIA v4")
+        opcion = st.radio("Navegación", ["Planificador", "Chatbot Asistente"])
+        
+        st.divider()
+        # Indicador visual de si ya hay datos cargados
+        if 'kivia_data' in st.session_state:
+            st.success("🟢 Datos Médicos: Cargados")
+        else:
+            st.warning("🔴 Datos Médicos: Pendientes")
+
+    # ==========================================
+    # VISTA 1: EL PLANIFICADOR (Importado)
+    # ==========================================
+    if opcion == "Planificador":
+        # ¡Aquí ocurre la magia! Una sola línea llama a todo el código visual
+        renderizar_planificador()
+
+    # ==========================================
+    # VISTA 2: EL CHATBOT (Tu código)
+    # ==========================================
+    elif opcion == "Chatbot Asistente":
+        st.title("💬 Chatbot Kivia")
+        
+        # Recuperar contexto del puente
+        datos = st.session_state.get('kivia_data')
+        
+        if datos:
+            st.info(f"🧠 Kivia sabe que tu Score es {datos['kivia_score']} y probabilidad {datos['probabilidad_adopcion']}.")
+            contexto_ia = f"El usuario tiene un score de salud de {datos['kivia_score']}/100 y una probabilidad de éxito de hábitos de {datos['probabilidad_adopcion']}."
+        else:
+            st.write("👋 Hola. Si quieres consejos personalizados, ve al Planificador primero.")
+            contexto_ia = "El usuario aún no ha llenado sus datos médicos."
+
+        # -----------------------------------------------
+        # AQUÍ PEGAS TU CÓDIGO DEL CHATBOT V4
+        # -----------------------------------------------
+        # (Solo recuerda pasar 'contexto_ia' a tu prompt del sistema)
+        # ...
+        
+        # Ejemplo rápido de integración visual:
+        if "mensajes" not in st.session_state: st.session_state.mensajes = []
+        
+        for m in st.session_state.mensajes:
+            st.chat_message(m["role"]).write(m["content"])
+            
+        if prompt := st.chat_input("Escribe aquí..."):
+            st.session_state.mensajes.append({"role": "user", "content": prompt})
+            st.chat_message("user").write(prompt)
+            
+            # Aquí iría tu llamada real a OpenAI usando 'contexto_ia'
+            respuesta = f"Entendido. (Respuesta simulada considerando: {contexto_ia})"
+            
+            st.session_state.mensajes.append({"role": "assistant", "content": respuesta})
+            st.chat_message("assistant").write(respuesta)
+
+if __name__ == "__main__":
+    main()
 
 
