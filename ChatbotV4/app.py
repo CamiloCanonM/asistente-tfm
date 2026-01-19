@@ -31,43 +31,43 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # ==========================================
 # BLOQUE A: LÓGICA DEL PLANIFICADOR (REAL)
 # ==========================================
-import numpy as np # Asegúrate de tener este import
 
-# 1. Definimos la estructura que usa el modelo (Obligatorio para pickle)
+# ==========================================
+# BLOQUE A: LÓGICA DEL PLANIFICADOR
+# ==========================================
+import numpy as np
+
+# --- 1. DEFINICIÓN DE CLASES (CRÍTICO PARA PICKLE) ---
+# Tienes que poner esto EXACTAMENTE así para que el pickle funcione
+class HabitModel:
+    def __init__(self):
+        # Definimos los atributos vacíos, el pickle los rellenará
+        self.model = None
+        self.scaler = None
+        # Si tu modelo usaba PCA u otras cosas, agrégalas aquí si es necesario
+        # Pero normalmente con definir la clase vacía basta para que no explote.
+        pass
+
 class ModelConfig:
     def __init__(self):
         self.n_components = 20
 
-# 2. Cargamos el archivo .pkl
+# --- 2. CARGAR EL CEREBRO ---
 @st.cache_resource
 def cargar_cerebro_planificador():
-    # Obtenemos la ruta absoluta de DONDE está este archivo app.py
+    # ... (aquí va tu código de carga que ya tenías) ...
+    # Asegúrate de usar la versión corregida que busca en la misma carpeta:
     ruta_app = os.path.dirname(os.path.abspath(__file__))
-    
-    # Construimos la ruta exacta al modelo asumiendo que está AL LADO de app.py
     ruta_modelo = os.path.join(ruta_app, "habit_model.pkl")
-    
-    # Debug: Imprimir dónde lo estamos buscando (aparecerá en la consola o interfaz)
-    # st.write(f"Buscando modelo en: {ruta_modelo}") 
     
     if os.path.exists(ruta_modelo):
         try:
             with open(ruta_modelo, "rb") as f: 
                 return pickle.load(f)
         except Exception as e:
-            st.error(f"El archivo existe pero falló al leer: {e}")
+            st.error(f"Error leyendo pickle: {e}")
             return None
-    else:
-        # Intento secundario: buscar en carpeta models si existe
-        ruta_modelo_v2 = os.path.join(ruta_app, "models", "habit_model.pkl")
-        if os.path.exists(ruta_modelo_v2):
-             with open(ruta_modelo_v2, "rb") as f: 
-                return pickle.load(f)
-        
-        # Si llegamos aquí, es que de verdad no lo encuentra
-        st.error(f"❌ ERROR CRÍTICO: No encuentro el archivo en: `{ruta_modelo}`")
-        return None
-
+    return None
 
 # 3. La Interfaz que calcula de verdad
 def renderizar_planificador_interno():
@@ -688,6 +688,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
