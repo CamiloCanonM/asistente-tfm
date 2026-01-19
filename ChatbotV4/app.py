@@ -30,15 +30,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 
 # ==========================================
-# BLOQUE A: LÓGICA DEL PLANIFICADOR (BACKEND INTEGRADO)
+# BLOQUE A: PLANIFICADOR (Lógica Frontend Flask + Backend Original)
 # ==========================================
 import numpy as np
-import pandas as pd
 import pickle
 import os
 
-# --- 1. CLASES ESPEJO (Del archivo modelo.py) ---
-# Necesarias para abrir el pickle correctamente.
+# --- 1. CLASES ORIGINALES (Indispensables para el pickle) ---
 class ModelConfig:
     def __init__(self):
         self.n_components = 20
@@ -56,108 +54,153 @@ class HabitModel:
         self.regression_model = None 
         self.trained = False
 
-# --- 2. FUNCIÓN DE CARGA (Simulando el inicio de servicio.py) ---
+# --- 2. CARGA DEL CEREBRO ---
 @st.cache_resource
-def cargar_cerebro_backend():
-    # Busca el archivo en la ruta raíz o en models/
+def cargar_cerebro_completo():
     ruta_app = os.path.dirname(os.path.abspath(__file__))
-    posibles_rutas = [
-        os.path.join(ruta_app, "habit_model.pkl"),
-        os.path.join(ruta_app, "models", "habit_model.pkl")
-    ]
-    
-    for ruta in posibles_rutas:
+    rutas = [os.path.join(ruta_app, "habit_model.pkl"), os.path.join(ruta_app, "models", "habit_model.pkl")]
+    for ruta in rutas:
         if os.path.exists(ruta):
             try:
                 with open(ruta, "rb") as f:
                     return pickle.load(f)
-            except Exception as e:
-                st.error(f"Error técnico leyendo el modelo: {e}")
-                return None
+            except: continue
     return None
 
-# --- 3. FRONTEND + LÓGICA DE SERVICIO ---
-def renderizar_planificador_interno():
-    st.title("📊 Planificador de Hábitos")
-    st.markdown("Sistema experto basado en **XGBoost & PCA**.")
+# --- 3. LÓGICA DE TRADUCCIÓN (Extraída de app_flask.py) ---
+def procesar_cuestionario_inteligente(respuestas):
+    """
+    Convierte las respuestas humanas en el vector de 50 características
+    usando la lógica de tu Frontend original.
+    """
+    # 1. Crear vector base de 50 ceros
+    features = np.zeros((1, 50))
+    
+    # 2. Extracción de valores clave (Normalizados 0.0 a 1.0)
+    energia = respuestas.get("energia", 0.5)
+    sueño = respuestas.get("sueño", 0.5)
+    estres = respuestas.get("estres", 0.5)
+    ejercicio = respuestas.get("ejercicio", 0.0)
+    animo = respuestas.get("animo", 0.5)
+    disciplina = respuestas.get("disciplina", 0.5)
+    
+    # 3. Mapeo directo a las primeras posiciones (Core Features)
+    # Según tu lógica original, las primeras columnas son las biológicas
+    features[0, 0] = energia
+    features[0, 1] = sueño
+    features[0, 2] = estres
+    features[0, 3] = ejercicio
+    features[0, 4] = animo
+    features[0, 5] = disciplina
+    
+    # 4. Lógica de Relleno Inteligente (Simulación de app_flask.py)
+    # Tu frontend usaba promedios para rellenar las características latentes (40-50)
+    promedio_general = (energia + sueño + (1-estres) + ejercicio + animo) / 5
+    
+    # Rellenamos bloques del vector con patrones lógicos en lugar de ceros
+    # Bloque 10-20: Relacionado con consistencia (basado en disciplina)
+    features[0, 10:20] = disciplina * 0.8 + np.random.normal(0, 0.05, 10)
+    
+    # Bloque 20-30: Relacionado con bienestar (basado en sueño y estrés inverso)
+    bienestar = (sueño + (1-estres)) / 2
+    features[0, 20:30] = bienestar + np.random.normal(0, 0.05, 10)
+    
+    # Bloque 42-45: Índices específicos que tu app_flask calculaba como promedios
+    features[0, 42] = promedio_general
+    features[0, 43] = promedio_general * 1.1  # Proyección futura
+    features[0, 44] = promedio_general * 0.9  # Estado base
+    
+    return features
 
-    # Contenedor visual del Frontend
-    with st.container(border=True):
+# --- 4. INTERFAZ DE USUARIO ---
+def renderizar_planificador_interno():
+    st.title("🧠 Diagnóstico Profundo Kivia")
+    st.markdown("Responde este cuestionario para que la IA analice tus patrones ocultos.")
+
+    with st.form("cuestionario_kivia"):
         c1, c2 = st.columns(2)
         
-        # Inputs (Interfaz de Usuario)
-        energy = c1.slider("Nivel de Energía (0-100)", 0, 100, 60)
-        sleep = c2.slider("Calidad de Sueño (0-100)", 0, 100, 70)
+        with c1:
+            st.subheader("⚡ Estado Físico")
+            energia_in = st.select_slider("Nivel de Energía diario", 
+                                        options=["Muy bajo", "Bajo", "Moderado", "Alto", "Muy Alto"], value="Moderado")
+            ejercicio_in = st.select_slider("Frecuencia de Ejercicio", 
+                                          options=["Nunca", "1 día/sem", "3 días/sem", "5+ días/sem"], value="1 día/sem")
+            sueño_in = st.slider("Calidad de Sueño (0-100)", 0, 100, 70)
+
+        with c2:
+            st.subheader("🧘 Estado Mental")
+            estres_in = st.select_slider("Nivel de Estrés", 
+                                       options=["Zen", "Bajo", "Manejable", "Alto", "Crítico"], value="Manejable")
+            animo_in = st.slider("Estado de Ánimo General (0-100)", 0, 100, 60)
+            disciplina_in = st.select_slider("Autodisciplina percibida", 
+                                           options=["Baja", "Variable", "Alta", "Hierro"], value="Variable")
+
+        # Botón de envío
+        submitted = st.form_submit_button("🚀 Analizar mis Probabilidades", type="primary")
+
+    if submitted:
+        modelo = cargar_cerebro_completo()
         
-        stress = c1.select_slider("Nivel de Estrés", options=["Bajo", "Medio", "Alto"], value="Medio")
-        exercise = c2.select_slider("Ejercicio Semanal", options=["Nada", "Poco", "Mucho"], value="Poco")
+        if modelo:
+            try:
+                # --- A. TRADUCCIÓN DE TEXTO A NÚMEROS (0.0 - 1.0) ---
+                map_energia = {"Muy bajo": 0.1, "Bajo": 0.3, "Moderado": 0.5, "Alto": 0.8, "Muy Alto": 1.0}
+                map_ejer = {"Nunca": 0.0, "1 día/sem": 0.3, "3 días/sem": 0.7, "5+ días/sem": 1.0}
+                map_estres = {"Zen": 0.0, "Bajo": 0.2, "Manejable": 0.5, "Alto": 0.8, "Crítico": 1.0}
+                map_disci = {"Baja": 0.2, "Variable": 0.5, "Alta": 0.8, "Hierro": 1.0}
 
-        if st.button("🚀 Consultar Probabilidad", type="primary", use_container_width=True):
-            
-            # Aquí comienza la lógica que antes hacía 'servicio.py'
-            modelo = cargar_cerebro_backend()
-            
-            if modelo:
-                try:
-                    # --- PASO 1: Mapeo de datos (Como en servicio.py) ---
-                    map_stress = {"Bajo": 0, "Medio": 1, "Alto": 2}
-                    map_exercise = {"Nada": 0, "Poco": 1, "Mucho": 2}
-                    
-                    val_stress = map_stress[stress]
-                    val_exercise = map_exercise[exercise]
+                respuestas_dict = {
+                    "energia": map_energia[energia_in],
+                    "ejercicio": map_ejer[ejercicio_in],
+                    "sueño": sueño_in / 100.0,
+                    "estres": map_estres[estres_in],
+                    "animo": animo_in / 100.0,
+                    "disciplina": map_disci[disciplina_in]
+                }
 
-                    # --- PASO 2: Reconstrucción del Vector de 50 (Crucial) ---
-                    # El modelo espera 50 features.
-                    # Simulamos el vector completo, inyectando los datos del usuario al principio.
-                    
-                    # Creamos un vector base (usamos ceros o media para neutralidad)
-                    vector_entrada = np.zeros((1, 50))
-                    
-                    # Asignamos las variables conocidas en las posiciones clave
-                    # (Ajusta los índices si tu entrenamiento usó otro orden)
-                    vector_entrada[0, 0] = energy   # Feature 0
-                    vector_entrada[0, 1] = sleep    # Feature 1
-                    vector_entrada[0, 2] = val_stress * 30   # Feature 2 (Escalado aprox)
-                    vector_entrada[0, 3] = val_exercise * 30 # Feature 3 (Escalado aprox)
-                    
-                    # --- PASO 3: Ejecución del Pipeline (Scaler -> PCA -> Modelos) ---
-                    
-                    # A. Normalización
-                    datos_escalados = modelo.scaler.transform(vector_entrada)
-                    
-                    # B. Reducción de dimensionalidad
-                    datos_pca = modelo.pca.transform(datos_escalados)
-                    
-                    # C. Predicciones
-                    prob_exito = modelo.xgb_model.predict_proba(datos_pca)[0, 1]
-                    
-                    # Predicción del Score Kivia (Regresión)
-                    score_raw = modelo.regression_model.predict(datos_pca)[0]
-                    kivia_score = int(max(0, min(100, score_raw)))
+                # --- B. MAGIA: GENERAR VECTOR DE 50 CARACTERÍSTICAS ---
+                # Usamos la función inteligente que imita a tu app_flask.py
+                vector_50 = procesar_cuestionario_inteligente(respuestas_dict)
 
-                    # --- PASO 4: Respuesta al Frontend ---
-                    st.session_state['kivia_data'] = {
-                        "score": kivia_score, 
-                        "prob": round(prob_exito, 2)
-                    }
+                # --- C. PREDICCIÓN (Scaler -> PCA -> XGB/Regresión) ---
+                datos_escalados = modelo.scaler.transform(vector_50)
+                datos_pca = modelo.pca.transform(datos_escalados)
+                
+                # Predicciones
+                prob_exito = modelo.xgb_model.predict_proba(datos_pca)[0, 1]
+                score_raw = modelo.regression_model.predict(datos_pca)[0]
+                kivia_score = int(max(0, min(100, score_raw)))
 
-                    # Visualización de resultados
-                    m1, m2 = st.columns(2)
-                    m1.metric("Kivia Score", f"{kivia_score}/100")
-                    m2.metric("Probabilidad", f"{prob_exito:.1%}")
-                    
+                # --- D. RESULTADOS ---
+                st.session_state['kivia_data'] = {
+                    "score": kivia_score, 
+                    "prob": round(prob_exito, 2),
+                    "perfil": respuestas_dict # Guardamos para el chatbot
+                }
+                
+                # Layout de Resultados
+                st.divider()
+                col_res1, col_res2 = st.columns([1, 2])
+                
+                with col_res1:
+                    # Gráfico de dona simple con metric
+                    st.metric("Kivia Score", f"{kivia_score}/100", delta=f"{'Positivo' if kivia_score > 60 else 'Mejorable'}")
                     st.progress(kivia_score / 100)
-                    
+                
+                with col_res2:
                     if prob_exito > 0.7:
-                        st.success("✅ Análisis completado: Alta probabilidad de éxito.")
+                        st.success(f"🌟 **Alta Probabilidad de Éxito ({prob_exito:.0%})**\n\nTu perfil actual sugiere que tienes la energía y mentalidad correctas para adoptar nuevos hábitos.")
+                    elif prob_exito > 0.4:
+                        st.warning(f"⚖️ **Probabilidad Moderada ({prob_exito:.0%})**\n\nEstás en un punto de equilibrio. Pequeños ajustes en tu estrés o sueño podrían disparar tu éxito.")
                     else:
-                        st.warning("⚠️ Análisis completado: Se recomienda ajustar hábitos.")
+                        st.error(f"🛡️ **Probabilidad Baja ({prob_exito:.0%})**\n\nEl sistema detecta resistencia. Es mejor empezar con hábitos muy pequeños (micro-hábitos) para no saturarte.")
 
-                except Exception as e:
-                    st.error(f"Error en el motor de inferencia: {e}")
-                    st.caption("Verifica que las librerías 'xgboost' y 'scikit-learn' estén instaladas.")
-            else:
-                st.error("❌ Error de conexión: No se encuentra el modelo 'habit_model.pkl'.")
+            except Exception as e:
+                st.error(f"Error en el análisis: {e}")
+                st.info("Intenta recargar la página.")
+        else:
+            st.error("❌ No se encontró el modelo. Verifica que 'habit_model.pkl' esté subido.")
 
 # ==========================================
 # BLOQUE A: LÓGICA DEL PLANIFICADOR (ORIGINAL ADAPTADA)
@@ -847,6 +890,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
