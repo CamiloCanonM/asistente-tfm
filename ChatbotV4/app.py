@@ -67,20 +67,21 @@ def cargar_cerebro_planificador():
             return None
     return None
 
-# 3. La Interfaz que calcula de verdad
+
+# ==========================================
+# REEMPLAZA TU FUNCIÓN COMPLETA POR ESTA
+# ==========================================
 def renderizar_planificador_interno():
     st.title("📊 Planificador de Hábitos")
     st.info("Configura tu estado actual para predecir tu éxito.")
 
-
     with st.container(border=True):
         c1, c2 = st.columns(2)
         
-        # --- INPUTS (DATOS DE ENTRADA) ---
+        # --- INPUTS ---
         energia = c1.slider("Nivel de Energía (0-100)", 0, 100, 50)
         sueno = c2.slider("Calidad de Sueño (0-100)", 0, 100, 50)
         
-        # Selectores de texto
         estres_txt = c1.select_slider("Nivel de Estrés", ["Bajo", "Medio", "Alto"])
         ejercicio_txt = c2.select_slider("Ejercicio Semanal", ["Nada", "Poco", "Mucho"])
         
@@ -88,49 +89,48 @@ def renderizar_planificador_interno():
             
             modelo = cargar_cerebro_planificador()
             
-            if modelo:                
-                
+            if modelo:
+                # Mapeo de textos a números
                 mapa_estres = {"Bajo": 0, "Medio": 1, "Alto": 2}
                 mapa_ejercicio = {"Nada": 0, "Poco": 1, "Mucho": 2}
                 
                 val_estres = mapa_estres[estres_txt]
                 val_ejercicio = mapa_ejercicio[ejercicio_txt]
                 
-                # Creamos el vector numérico [Energia, Sueño, Estrés, Ejercicio]
-                # Nota: El modelo espera una lista de listas [[...]]
+                # Vector inicial
                 datos_entrada = np.array([[energia, sueno, val_estres, val_ejercicio]])
                 
-            try:
-                    # --- PASO 1: ESCALADO (Normalizar datos) ---
-                    # El modelo necesita los datos en la misma escala que aprendió
+                # --- BLOQUE DE PREDICCIÓN CORREGIDO ---
+                try:
+                    # 1. Escalar
                     datos_escalados = modelo.scaler.transform(datos_entrada)
                     
-                    # --- PASO 2: PCA (Reducción de dimensiones) ---
-                    # El modelo espera 20 características, no 4. El PCA hace esa magia.
+                    # 2. PCA (Comprimir)
                     datos_pca = modelo.pca.transform(datos_escalados)
                     
-                    # --- PASO 3: PREDICCIÓN (Usando xgb_model) ---
-                    # Ahora sí, le preguntamos al cerebro correcto: 'xgb_model'
+                    # 3. Predecir con XGBoost
                     probabilidad = modelo.xgb_model.predict_proba(datos_pca)[0][1]
                     
                     score_final = int(probabilidad * 100)
                     
-                    # Guardamos en memoria para el Chatbot
+                    # Guardar en sesión
                     st.session_state['kivia_data'] = {
                         "score": score_final, 
                         "prob": round(probabilidad, 2)
                     }
                     
-                    # Mostramos resultado
+                    # Mostrar
                     color = "green" if score_final > 70 else "orange"
                     st.markdown(f"### Probabilidad de Éxito: :{color}[{score_final}%]")
                     st.progress(score_final / 100)
-                    st.success("✅ Datos enviados al Chatbot. ¡Ve a preguntarle!")
+                    st.success("✅ Datos enviados al Chatbot.")
                     
                 except Exception as e:
-                    st.error(f"Error en el cálculo: {e}")
-                    # Tip: Si falla aquí, suele ser porque los datos de entrada no coinciden
-                    # con lo que el Scaler espera.
+                    st.error(f"Error técnico en el cálculo: {e}")
+                    st.caption("Verifica que los inputs coincidan con el entrenamiento del Scaler.")
+            
+            else:
+                st.error("❌ No se pudo cargar el modelo.")
 
 # ==========================================
 # BLOQUE B: TU CÓDIGO CHATBOT
@@ -689,6 +689,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
