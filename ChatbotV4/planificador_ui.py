@@ -68,41 +68,44 @@ class HabitModel:
     def load_model(self, path): pass
 
 # ==========================================
-# 2. FUNCIÓN DE CARGA ROBUSTA
+# 2. FUNCIÓN DE CARGA ROBUSTA (VERSIÓN DEFINITIVA)
 # ==========================================
 @st.cache_resource
 def cargar_modelo_entrenado():
-    # Buscamos en la carpeta 'models' (donde tu script lo guarda) o en la raíz
-    rutas_posibles = [
-        os.path.join("models", "habit_model.pkl"),
-        "habit_model.pkl",
-        os.path.join(os.path.dirname(__file__), "models", "habit_model.pkl")
-    ]
+    # 1. Obtener la ruta exacta donde está este archivo script (planificador_ui.py)
+    directorio_script = os.path.dirname(os.path.abspath(__file__))
     
+    # 2. Construir las rutas basándonos en la ubicación del script
+    ruta_models = os.path.join(directorio_script, "models", "habit_model.pkl")
+    ruta_raiz = os.path.join(directorio_script, "habit_model.pkl")
+    
+    # Debug visual: Muestra en la app dónde estamos buscando (puedes borrar esto luego)
+    st.info(f"📂 Buscando modelo en:\n1. {ruta_models}\n2. {ruta_raiz}")
+
     ruta_final = None
-    for ruta in rutas_posibles:
-        if os.path.exists(ruta):
-            ruta_final = ruta
-            break
+    if os.path.exists(ruta_models):
+        ruta_final = ruta_models
+    elif os.path.exists(ruta_raiz):
+        ruta_final = ruta_raiz
             
     if not ruta_final:
-        st.error("❌ No se encontró 'habit_model.pkl'. Asegúrate de haber entrenado el modelo (Opción 1 del menú de consola) y que la carpeta 'models' exista.")
+        st.error(f"❌ ARCHIVO NO ENCONTRADO. Python está ejecutándose desde: {os.getcwd()}")
+        st.error("Por favor, mueve el archivo 'habit_model.pkl' a la misma carpeta donde está 'planificador_ui.py'.")
         return None
 
     try:
-        # --- TRUCO DE IDENTIDAD ---
-        # Esto es vital. Si entrenaste el modelo ejecutando el script directamente,
-        # se guardó como '__main__'. Aquí le decimos que '__main__' somos nosotros.
+        # Truco para que pickle encuentre las clases
         sys.modules['__main__'] = sys.modules[__name__]
-        sys.modules['modelo'] = sys.modules[__name__] # Por si el archivo se llamaba modelo.py
+        # Por si el modelo se entrenó en un archivo llamado 'modelo.py'
+        sys.modules['modelo'] = sys.modules[__name__] 
         
         with open(ruta_final, 'rb') as f:
             modelo_cargado = pickle.load(f)
+            st.success(f"✅ Modelo cargado exitosamente desde: {ruta_final}")
+            return modelo_cargado
             
-        return modelo_cargado
     except Exception as e:
-        st.error(f"⚠️ Error cargando el modelo: {e}")
-        st.info("Intenta volver a entrenar el modelo ejecutando tu script 'modelo.py' o 'modelo_v2.py' una vez.")
+        st.error(f"⚠️ Error leyendo el archivo (puede estar corrupto): {e}")
         return None
 
 # ==========================================
