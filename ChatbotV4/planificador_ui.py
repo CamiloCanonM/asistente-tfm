@@ -1,199 +1,250 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
 import os
 import sys
+import logging
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from xgboost import XGBClassifier
+
+# Configuración de logging para evitar errores en Streamlit
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
 
 # ==========================================
-# 1. ZONA DE CLASES (INTEGRACIÓN MODELO V2)
+# 1. DEFINICIÓN DE CLASES (IDENTICAS AL MODELO ORIGINAL)
 # ==========================================
-# 👇 AQUÍ PEGA LAS CLASES DE TU ARCHIVO modelo_v2.py
-# (Necesitamos que estén definidas AQUÍ para que el pickle las reconozca)
-
-# --- EJEMPLO (Reemplaza esto con el contenido real de tu modelo_v2.py) ---
+# Estas clases son necesarias para que 'pickle' reconozca la estructura del archivo guardado.
 
 class ModelConfig:
+    """Configuración del modelo - serializable"""
     def __init__(self):
-        # Configuración por defecto que suele tener tu modelo
         self.n_components = 20
         self.pca_variance_threshold = 0.85
-        # ... copia el contenido real de tu archivo ...
+        self.xgb_auc_target = 0.80
+        self.recommendation_accuracy_target = 0.75
+        self.regression_r2_target = 0.70
+    
+    def to_dict(self):
+        return {
+            'n_components': self.n_components,
+            'pca_variance_threshold': self.pca_variance_threshold,
+            'xgb_auc_target': self.xgb_auc_target,
+            'recommendation_accuracy_target': self.recommendation_accuracy_target,
+            'regression_r2_target': self.regression_r2_target
+        }
+    
+    @classmethod
+    def from_dict(cls, data):
+        config = cls()
+        for key, value in data.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+        return config
 
 class HabitModel:
-    def __init__(self):
-        self.config = ModelConfig()
+    """Modelo completo para el sistema de hábitos"""
+    
+    def __init__(self, config: ModelConfig = None):
+        self.config = config or ModelConfig()
         self.pca = None
         self.scaler = None
-        self.xgb_model = None       
-        self.regression_model = None 
+        self.xgb_model = None
+        self.regression_model = None
+        self.expert_system_rules = None
+        self.metrics = {}
         self.trained = False
-
-# 👆 FIN DE LA ZONA DE PEGADO 👆
-
+        self.last_trained = None
+        
+    # Incluimos métodos mínimos necesarios para que el objeto no se rompa al cargarse
+    def feature_engineering(self, X): pass
+    def train_xgboost_classifier(self, X, y): pass
+    def train_recommendation_system(self, X, u, c, h): pass
+    def train_kivia_regression(self, X, y): pass
+    def save_model(self, path): pass
+    def load_model(self, path): pass
 
 # ==========================================
-# 2. CARGA DEL CEREBRO (CON TRUCO DE IDENTIDAD)
+# 2. FUNCIÓN DE CARGA ROBUSTA
 # ==========================================
 @st.cache_resource
-def cargar_modelo():
-    """Carga el modelo original habit_model.pkl aplicando parches de compatibilidad"""
-    ruta_modelo = os.path.join(os.path.dirname(__file__), "habit_model.pkl")
+def cargar_modelo_entrenado():
+    # Buscamos en la carpeta 'models' (donde tu script lo guarda) o en la raíz
+    rutas_posibles = [
+        os.path.join("models", "habit_model.pkl"),
+        "habit_model.pkl",
+        os.path.join(os.path.dirname(__file__), "models", "habit_model.pkl")
+    ]
     
-    if not os.path.exists(ruta_modelo):
-        st.error(f"❌ No encuentro el archivo: {ruta_modelo}")
+    ruta_final = None
+    for ruta in rutas_posibles:
+        if os.path.exists(ruta):
+            ruta_final = ruta
+            break
+            
+    if not ruta_final:
+        st.error("❌ No se encontró 'habit_model.pkl'. Asegúrate de haber entrenado el modelo (Opción 1 del menú de consola) y que la carpeta 'models' exista.")
         return None
 
     try:
-        # --- EL TRUCO MAESTRO ---
-        # Engañamos al sistema para decirle: "Si el archivo busca 'modelo_v2', usa este archivo actual"
-        # Esto soluciona el error "No module named 'modelo_v2'"
-        sys.modules['modelo_v2'] = sys.modules[__name__]
-        sys.modules['kivia_backend'] = sys.modules[__name__] # Por seguridad
+        # --- TRUCO DE IDENTIDAD ---
+        # Esto es vital. Si entrenaste el modelo ejecutando el script directamente,
+        # se guardó como '__main__'. Aquí le decimos que '__main__' somos nosotros.
+        sys.modules['__main__'] = sys.modules[__name__]
+        sys.modules['modelo'] = sys.modules[__name__] # Por si el archivo se llamaba modelo.py
         
-        with open(ruta_modelo, "rb") as f:
-            modelo = pickle.load(f)
-            return modelo
+        with open(ruta_final, 'rb') as f:
+            modelo_cargado = pickle.load(f)
             
+        return modelo_cargado
     except Exception as e:
-        st.error(f"⚠️ Error cargando el cerebro: {e}")
-        st.info("💡 PISTA: Asegúrate de haber copiado las clases 'ModelConfig' y 'HabitModel' exactamente como están en tu archivo modelo_v2.py en la parte superior de este script.")
+        st.error(f"⚠️ Error cargando el modelo: {e}")
+        st.info("Intenta volver a entrenar el modelo ejecutando tu script 'modelo.py' o 'modelo_v2.py' una vez.")
         return None
 
 # ==========================================
-# 3. PROCESAMIENTO INTELIGENTE
+# 3. LÓGICA DE PREDICCIÓN (INPUT -> 50 FEATURES)
 # ==========================================
-def procesar_datos_entrada(respuestas):
-    """Transforma las respuestas del usuario al vector de 50 características que necesita la IA"""
+def preparar_vector_entrada(respuestas):
+    """
+    Convierte las 6 respuestas del usuario en el vector de 50 características
+    que espera tu modelo (simulando las otras 44).
+    """
+    # 1. Crear vector de ceros (1 fila, 50 columnas)
     features = np.zeros((1, 50))
     
-    # 1. Extracción directa (Normalizamos de texto a 0.0 - 1.0)
-    map_valores = {
-        # Energía / Estrés / Disciplina
-        "Muy bajo": 0.1, "Bajo": 0.3, "Moderado": 0.5, "Alto": 0.8, "Muy alto": 1.0,
-        "Zen": 0.1, "Medio": 0.5, "Crítico": 1.0,
-        "Baja": 0.2, "Variable": 0.5, "Férrea": 1.0,
-        # Ejercicio
-        "Sedentario": 0.0, "1-2 días": 0.3, "3-4 días": 0.7, "Atleta": 1.0
-    }
-
-    val_energia = map_valores.get(respuestas['energia'], 0.5)
-    val_ejercicio = map_valores.get(respuestas['ejercicio'], 0.0)
+    # 2. Mapeos de texto a número (0.0 a 1.0)
+    map_energia = {"Muy bajo": 0.1, "Bajo": 0.3, "Moderado": 0.5, "Alto": 0.8, "Muy alto": 1.0}
+    map_ejer = {"Sedentario": 0.0, "1-2 días": 0.3, "3-4 días": 0.7, "Atleta": 1.0}
+    map_estres = {"Zen": 0.0, "Bajo": 0.2, "Moderado": 0.5, "Alto": 0.8, "Crítico": 1.0}
+    map_disci = {"Baja": 0.2, "Variable": 0.5, "Alta": 0.8, "Férrea": 1.0}
+    
+    val_energia = map_energia.get(respuestas['energia'], 0.5)
+    val_ejercicio = map_ejer.get(respuestas['ejercicio'], 0.0)
     val_sueño = respuestas['sueño'] / 100.0
-    val_estres = map_valores.get(respuestas['estres'], 0.5)
+    val_estres = map_estres.get(respuestas['estres'], 0.5)
     val_animo = respuestas['animo'] / 100.0
-    val_disciplina = map_valores.get(respuestas['disciplina'], 0.5)
-
-    # 2. Asignación a las posiciones críticas (Ajustar según cómo entrenaste tu modelo)
-    # Asumimos las primeras posiciones según lógica estándar
+    val_disciplina = map_disci.get(respuestas['disciplina'], 0.5)
+    
+    # 3. Llenar las primeras posiciones (Suponiendo que estas son las más importantes)
     features[0, 0] = val_energia
-    features[0, 1] = val_sueño
-    features[0, 2] = val_estres
-    features[0, 3] = val_ejercicio
+    features[0, 1] = val_ejercicio
+    features[0, 2] = val_sueño
+    features[0, 3] = val_estres
     features[0, 4] = val_animo
     features[0, 5] = val_disciplina
     
-    # 3. Inferencia de datos latentes (Rellenamos el resto del vector con lógica difusa)
-    # Si tienes estrés alto, tu calidad de sueño latente baja
-    features[0, 10:20] = val_disciplina * 0.8  
-    features[0, 20:30] = (val_energia + val_ejercicio) / 2
-    features[0, 40:50] = (1.0 - val_estres) # Factor de resiliencia
+    # 4. Relleno Inteligente (Simulación de correlaciones)
+    # Tu modelo fue entrenado con datos aleatorios correlacionados.
+    # Debemos imitar ese patrón para que la predicción tenga sentido.
+    
+    # Las primeras 10 variables en tu entrenamiento definen el Score Kivia
+    # Así que llenamos hasta el índice 10 con variaciones de los datos ingresados
+    promedio_salud = (val_energia + val_ejercicio + val_sueño + val_animo) / 4
+    features[0, 6] = promedio_salud
+    features[0, 7] = (1.0 - val_estres) # Inverso del estrés
+    features[0, 8] = val_disciplina
+    features[0, 9] = promedio_salud * val_disciplina
+    
+    # Rellenamos el resto (índices 10 a 49) con ruido aleatorio leve basado en el promedio
+    # para no afectar drásticamente al PCA
+    features[0, 10:] = np.random.normal(promedio_salud, 0.1, 40)
     
     return features
 
 # ==========================================
-# 4. INTERFAZ GRÁFICA (RENDERING)
+# 4. UI PRINCIPAL
 # ==========================================
 def renderizar_planificador():
-    st.title("📊 Planificador de Hábitos Kivia")
-    st.markdown("---")
-
-    # Cargar cerebro
-    cerebro = cargar_modelo()
+    st.header("📊 Diagnóstico Predictivo (Modelo Entrenado)")
     
-    # Formulario
-    col1, col2 = st.columns(2)
+    cerebro = cargar_modelo_entrenado()
     
-    with col1:
-        st.subheader("Fisiología")
-        energia = st.select_slider("⚡ Nivel de Energía", ["Muy bajo", "Bajo", "Moderado", "Alto", "Muy alto"], value="Moderado")
-        sueño = st.slider("💤 Calidad de Sueño (0-100)", 0, 100, 70)
-        ejercicio = st.select_slider("🏃 Actividad Física", ["Sedentario", "1-2 días", "3-4 días", "Atleta"], value="1-2 días")
+    if cerebro and cerebro.trained:
+        st.success(f"✅ Modelo cargado. Último entrenamiento: {cerebro.last_trained}")
+    else:
+        st.warning("⚠️ El modelo no está marcado como 'entrenado'. Los resultados pueden ser imprecisos.")
 
-    with col2:
-        st.subheader("Psicología")
-        estres = st.select_slider("🧠 Nivel de Estrés", ["Zen", "Bajo", "Moderado", "Alto", "Crítico"], value="Moderado")
-        animo = st.slider("🎭 Estado de Ánimo (0-100)", 0, 100, 60)
-        disciplina = st.select_slider("🛡️ Autodisciplina", ["Baja", "Variable", "Alta", "Férrea"], value="Variable")
+    with st.form("form_prediccion"):
+        c1, c2 = st.columns(2)
+        
+        with c1:
+            st.subheader("Fisiología")
+            energia = st.select_slider("⚡ Nivel de Energía", ["Muy bajo", "Bajo", "Moderado", "Alto", "Muy alto"], value="Moderado")
+            sueño = st.slider("💤 Calidad de Sueño (0-100)", 0, 100, 70)
+            ejercicio = st.select_slider("🏃 Actividad Física", ["Sedentario", "1-2 días", "3-4 días", "Atleta"], value="1-2 días")
 
-    # Botón de Acción
-    if st.button("🚀 Analizar Viabilidad", type="primary", use_container_width=True):
-        if cerebro:
-            with st.spinner("El modelo original está pensando..."):
-                # 1. Preparar datos
-                input_dict = {
-                    "energia": energia, "sueño": sueño, "ejercicio": ejercicio,
-                    "estres": estres, "animo": animo, "disciplina": disciplina
-                }
+        with c2:
+            st.subheader("Psicología")
+            estres = st.select_slider("🧠 Nivel de Estrés", ["Zen", "Bajo", "Moderado", "Alto", "Crítico"], value="Moderado")
+            animo = st.slider("🎭 Estado de Ánimo (0-100)", 0, 100, 60)
+            disciplina = st.select_slider("🛡️ Autodisciplina", ["Baja", "Variable", "Alta", "Férrea"], value="Variable")
+            
+        submitted = st.form_submit_button("🚀 Analizar Probabilidad", type="primary")
+        
+    if submitted and cerebro:
+        # 1. Preparar datos
+        inputs = {
+            "energia": energia, "sueño": sueño, "ejercicio": ejercicio,
+            "estres": estres, "animo": animo, "disciplina": disciplina
+        }
+        
+        try:
+            # 2. Crear vector de 50 características
+            vector_raw = preparar_vector_entrada(inputs)
+            
+            # 3. Pipeline de Predicción (Scaler -> PCA -> Modelos)
+            
+            # A. Escalar
+            if cerebro.scaler:
+                vector_scaled = cerebro.scaler.transform(vector_raw)
+            else:
+                vector_scaled = vector_raw
                 
-                try:
-                    # 2. Vectorizar
-                    vector_raw = procesar_datos_entrada(input_dict)
+            # B. PCA
+            if cerebro.pca:
+                vector_pca = cerebro.pca.transform(vector_scaled)
+            else:
+                vector_pca = vector_scaled
+                
+            # C. Predicción de Probabilidad (XGBoost)
+            prob_exito = 0.5
+            if cerebro.xgb_model:
+                prob_exito = cerebro.xgb_model.predict_proba(vector_pca)[0, 1]
+                
+            # D. Predicción de Score (Regresión)
+            score_kivia = 50
+            if cerebro.regression_model:
+                score_raw = cerebro.regression_model.predict(vector_pca)[0]
+                score_kivia = int(max(0, min(100, score_raw)))
+            
+            # 4. Guardar en sesión para el chatbot
+            st.session_state['kivia_data'] = {
+                "score": score_kivia,
+                "prob": prob_exito,
+                "perfil": inputs
+            }
+            
+            # 5. Visualización
+            st.divider()
+            colA, colB = st.columns([1, 2])
+            
+            with colA:
+                st.metric("Score Kivia", f"{score_kivia}/100")
+                st.progress(score_kivia/100)
+                
+            with colB:
+                st.subheader(f"Probabilidad de Éxito: {prob_exito:.1%}")
+                if prob_exito > 0.75:
+                    st.success("🌟 Tu perfil es altamente compatible con la creación de nuevos hábitos.")
+                elif prob_exito > 0.45:
+                    st.warning("⚖️ Tienes una base sólida, pero el estrés o la falta de sueño podrían frenarte.")
+                else:
+                    st.error("🛡️ Se detectan barreras importantes. Recomendamos empezar con micro-hábitos muy pequeños.")
                     
-                    # 3. Transformaciones del Modelo (Scaler -> PCA)
-                    # Verifica si tu modelo tiene estos pasos dentro
-                    datos_procesados = vector_raw
-                    
-                    if hasattr(cerebro, 'scaler') and cerebro.scaler:
-                        datos_procesados = cerebro.scaler.transform(datos_procesados)
-                        
-                    if hasattr(cerebro, 'pca') and cerebro.pca:
-                        datos_procesados = cerebro.pca.transform(datos_procesados)
-                    
-                    # 4. Predicción
-                    prob_exito = 0.5
-                    puntaje = 50
-
-                    # Intenta predecir probabilidad (Clasificación)
-                    if hasattr(cerebro, 'xgb_model') and cerebro.xgb_model:
-                        try:
-                            probs = cerebro.xgb_model.predict_proba(datos_procesados)
-                            prob_exito = probs[0, 1] # Probabilidad de clase 1 (Éxito)
-                        except: pass
-
-                    # Intenta predecir puntaje (Regresión)
-                    if hasattr(cerebro, 'regression_model') and cerebro.regression_model:
-                        try:
-                            puntaje = cerebro.regression_model.predict(datos_procesados)[0]
-                        except: pass
-                    
-                    # Ajuste visual
-                    puntaje_final = int(np.clip(puntaje, 0, 100))
-                    
-                    # 5. Guardar en Session State para el Chatbot
-                    st.session_state['kivia_data'] = {
-                        "score": puntaje_final,
-                        "prob": prob_exito,
-                        "perfil": input_dict
-                    }
-
-                    # 6. Mostrar Resultados
-                    st.success("✅ Análisis Completado")
-                    
-                    c_res1, c_res2, c_res3 = st.columns(3)
-                    c_res1.metric("Puntaje Kivia", f"{puntaje_final}/100")
-                    c_res2.metric("Probabilidad Éxito", f"{prob_exito:.1%}")
-                    
-                    if prob_exito > 0.7:
-                        c_res3.info("🌟 Estás en gran forma para iniciar.")
-                    elif prob_exito > 0.4:
-                        c_res3.warning("⚠️ Requiere esfuerzo y constancia.")
-                    else:
-                        c_res3.error("🛡️ Empieza pequeño, riesgo de abandono.")
-
-                except Exception as e:
-                    st.error(f"Error en la predicción interna: {e}")
-                    st.write("Detalle técnico:", e)
-        else:
-            st.warning("El modelo no se cargó correctamente. Revisa la sección de clases.")
+        except Exception as e:
+            st.error(f"Error durante el análisis: {e}")
+            st.write("Detalles para depuración:", e)
